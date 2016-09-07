@@ -3,6 +3,13 @@
 #include <iostream>
 #include "CircBuffer.h"
 
+//The producer will print(for example) :
+//	1 asdfqwe
+//	2 lkjasoiueroisuer
+//	The consumer HAS to print
+//	1 asdfqwe
+//	2 lkjasoiueroisuer
+
 int main(size_t argc, char* argv[])
 {	
 	using namespace std;
@@ -21,6 +28,8 @@ int main(size_t argc, char* argv[])
 	size_t buffSize = atoi(argv[2]);
 	bool isProducer = atoi(argv[3]);
 	size_t chunkSize = atoi(argv[4]);
+	//Unsigned float delay
+	//unsigned int numMessages
 
 	if (write = true)
 	{
@@ -35,7 +44,10 @@ int main(size_t argc, char* argv[])
 
 	CircBufferFixed* CircleBuffer = new CircBufferFixed(buffName,buffSize,isProducer,chunkSize);
 
-	
+	if (isProducer)
+	{
+		CircleBuffer->createBuffer();
+	}
 
 	getchar();
 }
