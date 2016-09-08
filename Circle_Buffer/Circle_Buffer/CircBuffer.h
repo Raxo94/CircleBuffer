@@ -12,6 +12,9 @@ private:
 	bool isProducer;
 	size_t chunkSize;
 
+	LPCTSTR pBuf;
+	HANDLE MapingFile;
+
 	struct Header
 	{
 		size_t id;
@@ -37,6 +40,7 @@ public:
     // if returns true, then it succeeded, otherwise the message has not been sent.
     // it should return false if the buffer does not have enough space.
 	bool push(const void* msg, size_t length);
+	bool read(const void* msg, size_t length);
     // try to read a message from the buffer, and the implementation puts the content
     // in the memory. The memory is expected to be allocated by the program that calls
     // this function.
