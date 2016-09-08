@@ -10,12 +10,13 @@
 //	1 asdfqwe
 //	2 lkjasoiueroisuer
 
-int main(size_t argc, char* argv[])
+int main(size_t argc, char* argv[]) //remember to run as administrator 
 {	
 	using namespace std;
 
 	bool write = true;
-	
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+
 #pragma region getName  
 	size_t size = strlen(argv[1]) + 1;
 	wchar_t* wtext = new wchar_t[size];
@@ -33,21 +34,27 @@ int main(size_t argc, char* argv[])
 
 	if (write = true)
 	{
+		SetConsoleTextAttribute(hConsole, 11);
 		cout << "ArgumentCount: " << argc << endl;
 		wcout << "Name: " << buffName << endl;
 		cout << "BufferSize: " << buffSize << endl;
 		cout << "is the buffer a Producer?: " << isProducer << endl;
-		cout << "Chunk size: " << chunkSize << endl;
+		cout << "Chunk size: " << chunkSize << endl << endl;
 	}
 	
 	
 
 	CircBufferFixed* CircleBuffer = new CircBufferFixed(buffName,buffSize,isProducer,chunkSize);
 
-	if (isProducer)
+
+	if (CircleBuffer->createBuffer()&& write==true) // CreateSharedMaping
 	{
-		CircleBuffer->createBuffer();
+		SetConsoleTextAttribute(hConsole, 15);
+		cout << "Circle Buffer Created Sucessfully" << endl;
 	}
+
+
+
 
 	getchar();
 }
