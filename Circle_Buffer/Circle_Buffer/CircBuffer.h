@@ -31,7 +31,8 @@ public:
     
 	~CircBufferFixed(); // Destructor
 
-	bool createBuffer();
+	bool createMapingProducer();
+	bool createMapingConsumer();
     // try to send a message through the buffer,
     // if returns true, then it succeeded, otherwise the message has not been sent.
     // it should return false if the buffer does not have enough space.

@@ -15,18 +15,19 @@ CircBufferFixed::CircBufferFixed(LPCWSTR buffName, const size_t & buffSize, cons
 
 CircBufferFixed::~CircBufferFixed()
 {
+
 }
 
-bool CircBufferFixed::createBuffer() 
+bool CircBufferFixed::createMapingProducer() 
 {
-#define BUF_SIZE buffSize
+	#define BUF_SIZE buffSize
 	
-
 	TCHAR szName[] = TEXT("Global\\MyFileMappingObject");
 	TCHAR szMsg[] = TEXT("Message from first process.");
 
 	HANDLE hMapFile;
 	LPCTSTR pBuf;
+
 
 	hMapFile = CreateFileMapping(
 		INVALID_HANDLE_VALUE,    // use paging file
@@ -41,31 +42,72 @@ bool CircBufferFixed::createBuffer()
 		_tprintf(TEXT("Could not create file mapping object (%d).\n"),GetLastError());
 		return false;
 	}
+
 	
-	pBuf = (LPTSTR)MapViewOfFile(hMapFile,   // handle to map object
+	pBuf = (LPTSTR)MapViewOfFile(hMapFile,   // handle to map object 
 		FILE_MAP_ALL_ACCESS,				// read/write permission
 		0,0,BUF_SIZE);
 
 	if (pBuf == NULL)
 	{
-		_tprintf(TEXT("Could not map view of file (%d).\n"),
-			GetLastError());
-
+		_tprintf(TEXT("Could not map view of file (%d).\n"),GetLastError());
 		CloseHandle(hMapFile);
 
 		return false;
 	}
 
-
-	CopyMemory((PVOID)pBuf, szMsg, (_tcslen(szMsg) * sizeof(TCHAR)));
+	CopyMemory((PVOID)pBuf, szMsg, (_tcslen(szMsg) * sizeof(TCHAR))); //Copies a block of memory from one location to another.
 	
+	getchar(); //Wait for message to be recieved
 
 	UnmapViewOfFile(pBuf);
-
 	CloseHandle(hMapFile);
 
 	return true;
 }
+
+bool CircBufferFixed::createMapingConsumer()
+{
+	
+	#define BUF_SIZE buffSize
+	TCHAR szName[] = TEXT("Global\\MyFileMappingObject");
+	HANDLE hMapFile;
+	LPCTSTR pBuf;
+
+	hMapFile = OpenFileMapping(
+		FILE_MAP_ALL_ACCESS,   // read/write access
+		FALSE,                 // do not inherit the name
+		szName);               // name of mapping object
+
+	if (hMapFile == NULL)
+	{
+		_tprintf(TEXT("Could not open file mapping object (%d).\n"),GetLastError());
+		return false;
+	}
+
+	pBuf = (LPTSTR)MapViewOfFile(hMapFile, // handle to map object
+		FILE_MAP_ALL_ACCESS,  // read/write permission
+		0,
+		0,
+		BUF_SIZE);
+
+	if (pBuf == NULL)
+	{
+		_tprintf(TEXT("Could not map view of file (%d).\n"),GetLastError());
+		CloseHandle(hMapFile);
+
+		return false;
+	}
+
+	MessageBox(NULL, pBuf, TEXT("Process2"), MB_OK);
+
+	UnmapViewOfFile(pBuf);
+	CloseHandle(hMapFile);
+
+	return true;
+	}
+
+
 
 
 bool CircBufferFixed::push(const void * msg, size_t length)
