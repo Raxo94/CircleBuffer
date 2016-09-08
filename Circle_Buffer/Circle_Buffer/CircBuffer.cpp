@@ -59,12 +59,6 @@ bool CircBufferFixed::createMapingProducer()
 		return false;
 	}
 
-	
-	
-	CopyMemory((PVOID)pBuf, szMsg, (_tcslen(szMsg) * sizeof(TCHAR))); //Copies a block of memory from one location to another.
-
-	getchar(); //Wait for message to be recieved
-
 	this->MapingFile = MapingFileHandler;
 	this->pBuf = pBuf;
 	
@@ -76,22 +70,22 @@ bool CircBufferFixed::createMapingConsumer()
 	
 	#define BUF_SIZE buffSize
 	TCHAR szName[] = TEXT("Global\\MyFileMappingObject");
-	HANDLE hMapFile;
+	HANDLE MapingFileHandler;
 	LPCTSTR pBuf;
 
-	hMapFile = OpenFileMapping(
+	MapingFileHandler = OpenFileMapping(
 		FILE_MAP_ALL_ACCESS,   // read/write access
 		FALSE,                 // do not inherit the name
 		szName);               // name of mapping object
 
-	if (hMapFile == NULL)
+	if (MapingFileHandler == NULL)
 	{
 		_tprintf(TEXT("Could not open file mapping object (%d).\n"),
 			GetLastError());
 		return false;
 	}
 
-	pBuf = (LPTSTR)MapViewOfFile(hMapFile, // handle to map object
+	pBuf = (LPTSTR)MapViewOfFile(MapingFileHandler, // handle to map object
 		FILE_MAP_ALL_ACCESS,  // read/write permission
 		0,
 		0,
@@ -102,16 +96,16 @@ bool CircBufferFixed::createMapingConsumer()
 		_tprintf(TEXT("Could not map view of file (%d).\n"),
 			GetLastError());
 
-		CloseHandle(hMapFile);
+		CloseHandle(MapingFileHandler);
 
 		return false;
 	}
 
-	MessageBox(NULL, pBuf, TEXT("Process2"), MB_OK);
+	this->MapingFile = MapingFileHandler;
+	this->pBuf = pBuf;
+	//UnmapViewOfFile(pBuf);
 
-	UnmapViewOfFile(pBuf);
-
-	CloseHandle(hMapFile);
+	//CloseHandle(hMapFile);
 
 	return true;
 	}
@@ -123,6 +117,7 @@ bool CircBufferFixed::push(const void * msg, size_t length)
 {
 	TCHAR szMsg[] = TEXT("Message from first process.");
 	CopyMemory((PVOID)pBuf, szMsg, (_tcslen(szMsg) * sizeof(TCHAR))); //Copies a block of memory from one location to another.
+	getchar();
 
 	return false;
 }
