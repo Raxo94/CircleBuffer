@@ -4,58 +4,48 @@
 #include "CircBuffer.h"
 #include <thread> 
 #include <chrono>   
+#include "OExtraFunctions.hpp"
 
-//The producer will print(for example) :
-//	1 asdfqwe
-//	2 lkjasoiueroisuer
-//	The consumer HAS to print
-//	1 asdfqwe
-//	2 lkjasoiueroisuer
-
-
-int main(size_t argc, char* argv[]) //remember to run as administrator 
+int main(size_t argc, char* argv[])
 {	
+	HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
 	using namespace std;
-
 	bool printToConsole = true;
 	bool done = false;
 
-	HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+	if (argc < 6)										     //handle arguments
+	{
+		showUsage();
+	}
 
-#pragma region getName  
-	/*size_t size = strlen(argv[1]) + 1;
-	wchar_t* wtext = new wchar_t[size];
-	size_t outSize;
-	mbstowcs_s(&outSize, wtext, size, argv[1], size - 1);
-	LPCWSTR buffName = wtext;*/
-#pragma endregion 
+	bool isProducer = false;							 //program is a producer or consumer
+	if (strcmp("producer", argv[1]) == 0)
+		isProducer = true;
+	else if (strcmp("consumer", argv[1]) == 0)
+		isProducer = false;
+	else { showUsage(); }
 
-	
-	LPCWSTR buffName = TEXT ("CircleBuffer");
-
-	bool isProducer = atoi(argv[1]);
-	float delay = atoi(argv[2]);
-	size_t buffSize = atoi(argv[3]);
-	unsigned int numMessages= atoi(argv[4]);
-	size_t MsgSize = atoi(argv[5]);
-	size_t chunkSize = 256;
+												   
+	size_t delay = atoi(argv[2]);				  //delay in milliseconds
+	size_t bufferSize = atoi(argv[3]) * 1 << 20; //input is in megabite so turn into bytes
+	unsigned int numMessages= atoi(argv[4]);	//How many messages do you wish to send?
+	size_t MsgSize = atoi(argv[5]);			   //And how big should the messages be
+	size_t chunkSize = 256;					  //Padding. It is a thing
 	
 
 	if (printToConsole = true)
 	{
 		SetConsoleTextAttribute(consoleHandle, 11);
-		cout << "ArgumentCount: " << argc << endl;
-		wcout << "Name: " << buffName << endl;
-		cout << "IsProducer? 1=Yes 0=No: " << isProducer << endl;
-		cout << "delay:" << delay;
-		cout << "BufferSize: " << buffSize << endl;
+		cout << "IsProducer?: " << isProducer << endl;
+		cout << "delay:" << delay << endl;
+		cout << "BufferSize: " << bufferSize << endl;
 		cout << "Amount of messages: " << numMessages << endl;
 		cout << "Chunk size: " << chunkSize << endl << endl;
 		SetConsoleTextAttribute(consoleHandle, 15);
 	}
 	
 	
-	CircBufferFixed* CircleBuffer = new CircBufferFixed(buffName,buffSize,isProducer,chunkSize);
+	CircBufferFixed* CircleBuffer = new CircBufferFixed(L"Buffer",bufferSize,isProducer,chunkSize);
 
 	
 	
@@ -68,18 +58,14 @@ int main(size_t argc, char* argv[]) //remember to run as administrator
 			cout << "Circle Buffer Created Sucessfully" << endl << endl;
 			while (done != true)
 			{
-				//this_thread::sleep_for(std::chrono::seconds(5));
-				string message = "HELLO";
-				size_t messageLength = message.length();
+
+				if (delay != 0) { this_thread::sleep_for(std::chrono::milliseconds(delay)); }
+
+				char message [] = "HELLO"; //use generator in future
+				size_t messageLength = MsgSize;
 				CircleBuffer->push(&message, messageLength);
 				getchar();
 				done = true;
-
-				/*int megabytes = 1;
-
-				megabytes * 1 << 40;
-
-				1024 * 10^2 = */
 			}
 		}
 	}
@@ -92,9 +78,7 @@ int main(size_t argc, char* argv[]) //remember to run as administrator
 			cout << "Circle Buffer Created Sucessfully" << endl << endl;
 			while (done != true)
 			{
-				//this_thread::sleep_for(std::chrono::seconds(5));
-
-
+				if (delay != 0) { this_thread::sleep_for(std::chrono::milliseconds(delay)); }
 				string message = "HELLO"; //Not Used Yet
 				size_t messageLength = message.length(); //Not Used Yet
 				CircleBuffer->read(&message,messageLength);
@@ -110,3 +94,4 @@ int main(size_t argc, char* argv[]) //remember to run as administrator
 
 	delete CircleBuffer;
 }
+

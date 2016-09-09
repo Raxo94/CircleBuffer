@@ -106,13 +106,13 @@ bool CircBufferFixed::createMapingConsumer()
 
 bool CircBufferFixed::push(const void * msg, size_t length)
 {
-	char writeMessage[] = "This is the first message. And also the most important one.\nRemember and never forget!";
+	//char writeMessage[] = "This is the first message. And also the most important one.\nRemember and never forget!";
 
 #pragma region push Header
 
 	Header currentHeader;
 	currentHeader.id = MessageCount;
-	currentHeader.length = sizeof(writeMessage);
+	currentHeader.length = sizeof(length);
 	currentHeader.padding = 0;
 
 	memcpy(this->bufferPointer, &currentHeader, sizeof(Header));
@@ -121,8 +121,8 @@ bool CircBufferFixed::push(const void * msg, size_t length)
 
 #pragma region push message
 
-	memcpy(this->bufferPointer, &writeMessage, sizeof(writeMessage));
-	bufferPointer += sizeof(writeMessage);
+	memcpy(this->bufferPointer, msg, length);
+	bufferPointer += length;
 #pragma endregion
 
 	getchar();
