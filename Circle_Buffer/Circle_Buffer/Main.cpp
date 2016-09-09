@@ -20,7 +20,7 @@ int main(size_t argc, char* argv[]) //remember to run as administrator
 	bool printToConsole = true;
 	bool done = false;
 
-	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
 
 #pragma region getName  
 	/*size_t size = strlen(argv[1]) + 1;
@@ -43,7 +43,7 @@ int main(size_t argc, char* argv[]) //remember to run as administrator
 
 	if (printToConsole = true)
 	{
-		SetConsoleTextAttribute(hConsole, 11);
+		SetConsoleTextAttribute(consoleHandle, 11);
 		cout << "ArgumentCount: " << argc << endl;
 		wcout << "Name: " << buffName << endl;
 		cout << "IsProducer? 1=Yes 0=No: " << isProducer << endl;
@@ -51,7 +51,7 @@ int main(size_t argc, char* argv[]) //remember to run as administrator
 		cout << "BufferSize: " << buffSize << endl;
 		cout << "Amount of messages: " << numMessages << endl;
 		cout << "Chunk size: " << chunkSize << endl << endl;
-		SetConsoleTextAttribute(hConsole, 15);
+		SetConsoleTextAttribute(consoleHandle, 15);
 	}
 	
 	
@@ -64,7 +64,8 @@ int main(size_t argc, char* argv[]) //remember to run as administrator
 	{
 		if (CircleBuffer->createMapingProducer() && printToConsole == true) // CreateSharedMaping
 		{
-			cout << "Circle Buffer Created Sucessfully" << endl;
+			SetConsoleTextAttribute(consoleHandle, 10);
+			cout << "Circle Buffer Created Sucessfully" << endl << endl;
 			while (done != true)
 			{
 				//this_thread::sleep_for(std::chrono::seconds(5));
@@ -87,7 +88,8 @@ int main(size_t argc, char* argv[]) //remember to run as administrator
 	{
 		if (CircleBuffer->createMapingConsumer() && printToConsole == true)
 		{
-			cout << "Circle Buffer Created Sucessfully" << endl;
+			SetConsoleTextAttribute(consoleHandle, 10);
+			cout << "Circle Buffer Created Sucessfully" << endl << endl;
 			while (done != true)
 			{
 				//this_thread::sleep_for(std::chrono::seconds(5));

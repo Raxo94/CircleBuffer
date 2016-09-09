@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <conio.h>
 #include <tchar.h>
+#include <iostream>
 
 CircBufferFixed::CircBufferFixed(LPCWSTR buffName, const size_t & buffSize, const bool & isProducer, const size_t & chunkSize)
 {
@@ -11,56 +12,55 @@ CircBufferFixed::CircBufferFixed(LPCWSTR buffName, const size_t & buffSize, cons
 	this->isProducer = isProducer;
 	this->chunkSize = chunkSize;
 
+	this->MessageCount = 0;
+	this->MapingFile = NULL;
+
+	this->consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
 }
 
 CircBufferFixed::~CircBufferFixed()
 {
-	UnmapViewOfFile(pBuf);
+	UnmapViewOfFile(bufferPointer);
 	CloseHandle(MapingFile);
 
 }
 
 bool CircBufferFixed::createMapingProducer() 
 {
-	#define BUF_SIZE buffSize
 	
-	TCHAR szName[] = TEXT("Global\\MyFileMappingObject");
-	TCHAR szMsg[] = TEXT("Message from first process.");
+	
+	TCHAR szName[] = TEXT("MyFileMappingObject");
 	
 
-	HANDLE MapingFileHandler;
-	LPCTSTR pBuf;
 
-
-	MapingFileHandler = CreateFileMapping(
+	this->MapingFile = CreateFileMapping(
 		INVALID_HANDLE_VALUE,    // use paging file
 		NULL,                    // default security
 		PAGE_READWRITE,          // read/write access
 		0,                       // maximum object size (high-order DWORD)
-		BUF_SIZE,                // maximum object size (low-order DWORD)
+		buffSize,                // maximum object size (low-order DWORD)
 		szName);                 // name of mapping object
 
-	if (MapingFileHandler == NULL)
+	if (this->MapingFile == NULL)
 	{
 		_tprintf(TEXT("Could not create file mapping object (%d).\n"),GetLastError());
 		return false;
 	}
 
 	
-	pBuf = (LPTSTR)MapViewOfFile(MapingFileHandler,   // handle to map object 
+	this->bufferPointer = (char*)MapViewOfFile(this->MapingFile,   // handle to map object 
 		FILE_MAP_ALL_ACCESS,				// read/write permission
-		0,0,BUF_SIZE);
+		0,0,buffSize);
 
-	if (pBuf == NULL)
+	if (bufferPointer == NULL)
 	{
 		_tprintf(TEXT("Could not map view of file (%d).\n"),GetLastError());
-		CloseHandle(MapingFileHandler);
+		CloseHandle(this->MapingFile);
 
 		return false;
 	}
 
-	this->MapingFile = MapingFileHandler;
-	this->pBuf = pBuf;
+	
 	
 	return true;
 }
@@ -68,44 +68,35 @@ bool CircBufferFixed::createMapingProducer()
 bool CircBufferFixed::createMapingConsumer()
 {
 	
-	#define BUF_SIZE buffSize
-	TCHAR szName[] = TEXT("Global\\MyFileMappingObject");
-	HANDLE MapingFileHandler;
-	LPCTSTR pBuf;
-
-	MapingFileHandler = OpenFileMapping(
+	TCHAR szName[] = TEXT("MyFileMappingObject");
+	
+	this->MapingFile = OpenFileMapping(
 		FILE_MAP_ALL_ACCESS,   // read/write access
 		FALSE,                 // do not inherit the name
 		szName);               // name of mapping object
 
-	if (MapingFileHandler == NULL)
+	if (this->MapingFile == NULL)
 	{
 		_tprintf(TEXT("Could not open file mapping object (%d).\n"),
 			GetLastError());
 		return false;
 	}
 
-	pBuf = (LPTSTR)MapViewOfFile(MapingFileHandler, // handle to map object
+	this->bufferPointer = (char*)MapViewOfFile(this->MapingFile, // handle to map object
 		FILE_MAP_ALL_ACCESS,  // read/write permission
 		0,
 		0,
-		BUF_SIZE);
+		buffSize);
 
-	if (pBuf == NULL)
+	if (bufferPointer == NULL)
 	{
 		_tprintf(TEXT("Could not map view of file (%d).\n"),
 			GetLastError());
 
-		CloseHandle(MapingFileHandler);
+		CloseHandle(this->MapingFile);
 
 		return false;
 	}
-
-	this->MapingFile = MapingFileHandler;
-	this->pBuf = pBuf;
-	//UnmapViewOfFile(pBuf);
-
-	//CloseHandle(hMapFile);
 
 	return true;
 	}
@@ -115,16 +106,55 @@ bool CircBufferFixed::createMapingConsumer()
 
 bool CircBufferFixed::push(const void * msg, size_t length)
 {
-	TCHAR szMsg[] = TEXT("Message from first process.");
-	CopyMemory((PVOID)pBuf, szMsg, (_tcslen(szMsg) * sizeof(TCHAR))); //Copies a block of memory from one location to another.
-	getchar();
+	char writeMessage[] = "This is the first message. And also the most important one.\nRemember and never forget!";
 
+#pragma region push Header
+
+	Header currentHeader;
+	currentHeader.id = MessageCount;
+	currentHeader.length = sizeof(writeMessage);
+	currentHeader.padding = 0;
+
+	memcpy(this->bufferPointer, &currentHeader, sizeof(Header));
+	bufferPointer += sizeof(Header);	
+#pragma endregion
+
+#pragma region push message
+
+	memcpy(this->bufferPointer, &writeMessage, sizeof(writeMessage));
+	bufferPointer += sizeof(writeMessage);
+#pragma endregion
+
+	getchar();
 	return false;
+
 }
 
 bool CircBufferFixed::read(const void* msg, size_t length)
 {
-	MessageBox(NULL, pBuf, TEXT("Process2"), MB_OK);
+	 //change color of text
+
+#pragma region READ MESSAGE
+	Header readHeader;
+
+	memcpy(&readHeader, bufferPointer, sizeof(Header));
+	bufferPointer += sizeof(Header);
+
+	
+	
+#pragma endregion
+
+#pragma region READ MESSAGE
+	char* readMessage = new char[readHeader.length];
+	memcpy(readMessage, bufferPointer, readHeader.length);
+	
+#pragma endregion
+
+	SetConsoleTextAttribute(consoleHandle, 15); //change consol text color
+	cout << "Message ID: " << readHeader.id << endl;
+	SetConsoleTextAttribute(consoleHandle, 7); //change consol text color
+	cout << readMessage << endl;
+	getchar();
 	return false;
 }
 
