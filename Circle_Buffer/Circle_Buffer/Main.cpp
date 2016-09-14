@@ -52,7 +52,7 @@ int main(size_t argc, char* argv[])
 	
 	if(isProducer == true)
 	{
-		if (CircleBuffer->createMapingProducer() && printToConsole == true) // CreateSharedMaping
+		if (CircleBuffer->createMaping() && printToConsole == true) // CreateSharedMaping
 		{
 			SetConsoleTextAttribute(consoleHandle, 10);
 			cout << "Circle Buffer Created Sucessfully" << endl << endl;
@@ -61,8 +61,8 @@ int main(size_t argc, char* argv[])
 
 				if (delay != 0) { this_thread::sleep_for(std::chrono::milliseconds(delay)); }
 
-				char message [] = "HELLO"; //use generator in future
-				size_t messageLength = MsgSize;
+				char message [] = "HellosILOVEYAA"; //use generator in future
+				size_t messageLength = sizeof(message); //in the future we will use MSGSize to decide length
 				CircleBuffer->push(&message, messageLength);
 				getchar();
 				done = true;
@@ -72,16 +72,17 @@ int main(size_t argc, char* argv[])
 	
 	else
 	{
-		if (CircleBuffer->createMapingConsumer() && printToConsole == true)
+		if (CircleBuffer->createMaping() && printToConsole == true)
 		{
 			SetConsoleTextAttribute(consoleHandle, 10);
 			cout << "Circle Buffer Created Sucessfully" << endl << endl;
 			while (done != true)
 			{
 				if (delay != 0) { this_thread::sleep_for(std::chrono::milliseconds(delay)); }
-				string message = "HELLO"; //Not Used Yet
-				size_t messageLength = message.length(); //Not Used Yet
-				CircleBuffer->read(&message,messageLength);
+				
+				//maybe read header first
+				Header* header= new Header();
+				CircleBuffer->read(header,header->length);
 				getchar();
 				done = true;
 			}

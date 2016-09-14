@@ -2,6 +2,17 @@
 #include <iostream>
 using namespace std;
 
+struct Header
+{
+	size_t id;
+	size_t length;
+	size_t padding;
+
+
+	// maybe number of consumers here?
+};
+
+
 class CircBufferFixed
 {
 	
@@ -21,16 +32,7 @@ private:
 	bool isProducer;
 	HANDLE MapingFile, consoleHandle;
 
-	struct Header
-	{
-		size_t id;
-		size_t length;
-		size_t padding;
-
-		
-        // maybe number of consumers here?
-	};
-
+	
 public:
     
 	CircBufferFixed( // Constructor
@@ -42,8 +44,8 @@ public:
     
 	~CircBufferFixed(); // Destructor
 
-	bool createMapingProducer(); //returns true if sucess
-	bool createMapingConsumer(); //returns true if sucess
+	//bool createMapingProducer(), createMapingConsumer(); 
+	bool createMaping(); //returns true if success
 	bool read(const void* msg, size_t length);
 
     // try to send a message through the buffer,
