@@ -24,6 +24,7 @@ private:
 
 	LPCWSTR buffName;
 	char* bufferPointer;
+	
 
 	size_t buffSize, 
 		MessageCount, 
@@ -34,7 +35,7 @@ private:
 
 	
 public:
-    
+	size_t freeMemory;
 	CircBufferFixed( // Constructor
             LPCWSTR buffName,          // unique name
             const size_t& buffSize,    // size of the whole filemap

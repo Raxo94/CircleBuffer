@@ -46,47 +46,56 @@ int main(size_t argc, char* argv[])
 	
 	
 	CircBufferFixed* CircleBuffer = new CircBufferFixed(L"Buffer",bufferSize,isProducer,chunkSize);
-
+	CircleBuffer->createMaping();
 	
 	
 	
 	if(isProducer == true)
 	{
-		if (CircleBuffer->createMaping() && printToConsole == true) // CreateSharedMaping
+		
+		SetConsoleTextAttribute(consoleHandle, 10);
+		cout << "Circle Buffer Created Successfully" << endl << endl;
+		SetConsoleTextAttribute(consoleHandle, 14);
+
+		for (size_t i = 1; i <= /*numMessages*/10000; i++)
 		{
-			SetConsoleTextAttribute(consoleHandle, 10);
-			cout << "Circle Buffer Created Sucessfully" << endl << endl;
-			while (done != true)
+
+			if (delay != 0) 
+			{ this_thread::sleep_for(std::chrono::milliseconds(delay)); }
+			
+			char* message= new char[MsgSize]();
+			gen_random(message, MsgSize);
+
+			if (CircleBuffer->freeMemory > MsgSize)
 			{
+				CircleBuffer->freeMemory -= MsgSize;
 
-				if (delay != 0) { this_thread::sleep_for(std::chrono::milliseconds(delay)); }
-
-				char message [] = "HellosILOVEYAA"; //use generator in future
-				size_t messageLength = sizeof(message); //in the future we will use MSGSize to decide length
-				CircleBuffer->push(&message, messageLength);
-				getchar();
-				done = true;
+				CircleBuffer->push(message, MsgSize);
+				if (printToConsole)
+					cout << "Message " << i << ":  " << message << endl << endl << "FreeMemory= " << CircleBuffer->freeMemory << endl << endl <<endl;
 			}
+			
+			
 		}
+	
 	}
 	
 	else
 	{
-		if (CircleBuffer->createMaping() && printToConsole == true)
+		SetConsoleTextAttribute(consoleHandle, 10);
+		cout << "Circle Buffer Created Successfully" << endl << endl;
+		while (done != true)
 		{
-			SetConsoleTextAttribute(consoleHandle, 10);
-			cout << "Circle Buffer Created Sucessfully" << endl << endl;
-			while (done != true)
-			{
-				if (delay != 0) { this_thread::sleep_for(std::chrono::milliseconds(delay)); }
+			if (delay != 0) 
+			{ this_thread::sleep_for(std::chrono::milliseconds(delay)); }
 				
-				//maybe read header first
-				Header* header= new Header();
-				CircleBuffer->read(header,header->length);
-				getchar();
-				done = true;
-			}
+			//maybe read header first
+			Header* header= new Header();
+			CircleBuffer->read(header,header->length);
+			
+			done = true;
 		}
+		
 	}
 
 
