@@ -142,8 +142,6 @@ bool CircBufferFixed::createMaping()
 
 bool CircBufferFixed::push(const void * msg, size_t length)
 {
-	//char writeMessage[] = "This is the first message. And also the most important one.\nRemember and never forget!";
-	
 	Header currentHeader;
 	currentHeader.id = MessageCount;
 	currentHeader.length = length;
@@ -175,7 +173,6 @@ bool CircBufferFixed::read(const void* msg, size_t length)
 	char* readMessage = new char[readHeader.length];
 	memcpy(readMessage, bufferPointer, readHeader.length);
 	
-
 
 	SetConsoleTextAttribute(consoleHandle, 15); //change consol text color
 	cout << "Message ID: " << readHeader.id << endl;
