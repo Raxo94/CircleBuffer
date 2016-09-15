@@ -6,12 +6,22 @@
 #include <iostream>
 
 
+Control CircBufferFixed::headTails()
+{
+	Control ControlVariables;
+	
+
+	memcpy(&ControlVariables, ControlPointer, sizeof(Control));
+	return ControlVariables;
+}
+
 CircBufferFixed::CircBufferFixed(LPCWSTR buffName, const size_t & buffSize, const bool & isProducer, const size_t & chunkSize)
 {
 	this->buffName = buffName;
 	this->freeMemory = this->buffSize = buffSize;
 	this->isProducer = isProducer;
 	this->chunkSize = chunkSize;
+	this->head = 0;
 
 	this->MessageCount = 0;
 	this->MapingFile = NULL;
@@ -20,23 +30,19 @@ CircBufferFixed::CircBufferFixed(LPCWSTR buffName, const size_t & buffSize, cons
 
 CircBufferFixed::~CircBufferFixed()
 {
-	UnmapViewOfFile(bufferPointer);
+	UnmapViewOfFile(MapPointer);
 	CloseHandle(MapingFile);
+
+	UnmapViewOfFile(ControlPointer);
+	CloseHandle(ControlFile);
 
 }
 
 
 bool CircBufferFixed::createMaping()
 {
-	TCHAR szName[] = TEXT("FileMappingObject");
-
-	this->MapingFile = CreateFileMapping(
-		INVALID_HANDLE_VALUE,    // use paging file
-		NULL,                    // default security
-		PAGE_READWRITE,          // read/write access
-		0,                       // maximum object size (high-order DWORD)
-		buffSize,                // maximum object size (low-order DWORD)
-		szName);                 // name of mapping object
+	//Message map
+	this->MapingFile = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, buffSize, TEXT("FileMappingObject"));
 
 	if (this->MapingFile == NULL)
 	{
@@ -45,20 +51,35 @@ bool CircBufferFixed::createMaping()
 	}
 
 
-	this->bufferPointer = (char*)MapViewOfFile(this->MapingFile,   // handle to map object 
-		FILE_MAP_ALL_ACCESS,				// read/write permission
-		0, 0, buffSize);
+	this->MapPointer = (char*)MapViewOfFile(this->MapingFile, FILE_MAP_ALL_ACCESS, 0, 0, buffSize);
 
-	if (bufferPointer == NULL)
+	if (MapPointer == NULL)
 	{
 		_tprintf(TEXT("Could not map view of file (%d).\n"), GetLastError());
 		CloseHandle(this->MapingFile);
-
 		return false;
 	}
 
+	//Controll Map;
+	
+	this->ControlFile = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(Control), TEXT("ControlMappingObject"));
 
+	if (this->ControlFile == NULL)
+	{
+		_tprintf(TEXT("Could not create file Control mapping object (%d).\n"), GetLastError());
+		return false;
+	}
 
+	this->ControlPointer = (size_t*)MapViewOfFile(this->ControlFile, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(Control));
+
+	if (ControlPointer == NULL)
+	{
+		_tprintf(TEXT("Could not map view of Control file (%d).\n"), GetLastError());
+		CloseHandle(this->MapingFile);
+		return false;
+	}
+	size_t tail = 0;
+	memcpy(&ControlPointer[1], &tail, sizeof(size_t)); //set the tail;
 	return true;
 }
 
@@ -72,15 +93,22 @@ bool CircBufferFixed::push(const void * msg, size_t length)
 	currentHeader.length = length;
 	currentHeader.padding = 0;
 
-	memcpy(this->bufferPointer, &currentHeader, sizeof(Header));
-	bufferPointer += sizeof(Header);
+	memcpy(&MapPointer[head], &currentHeader, sizeof(Header));
+	head += sizeof(Header);
 
-	memcpy(this->bufferPointer, msg, length);
-	bufferPointer += length;
+	memcpy(&MapPointer[head], msg, length);
+	head += length;
+	
+	
+	cout << "Message ID: " << currentHeader.id << endl;
+	cout << "Message Length: " << currentHeader.length << endl;
+	cout << "Header: " << head<< endl << endl;
+	MessageCount += 1;
+
 	
 
-	/*cout << "Message ID: " << currentHeader.id << endl;
-	cout << "Message Length: " << currentHeader.length << endl;*/
+	memcpy(ControlPointer,&head,sizeof(size_t));
+
 
 	return false;
 
@@ -89,20 +117,19 @@ bool CircBufferFixed::push(const void * msg, size_t length)
 bool CircBufferFixed::read(const void* msg, size_t length)
 {
 	Header readHeader;
-	memcpy(&readHeader, bufferPointer, sizeof(Header));
-	bufferPointer += sizeof(Header);
+	memcpy(&readHeader, &MapPointer[head], sizeof(Header));
+	head += sizeof(Header);
 
 	
 	char* readMessage = new char[readHeader.length];
-	memcpy(readMessage, bufferPointer, readHeader.length);
-	
+	memcpy(readMessage, &MapPointer[head], readHeader.length);
+	head += readHeader.length;
 
 	SetConsoleTextAttribute(consoleHandle, 15); //change consol text color
 	cout << "Message ID: " << readHeader.id << endl;
 	cout << "Message Length: " << readHeader.length << endl;
 	SetConsoleTextAttribute(consoleHandle, 7); //change consol text color
 	cout << readMessage << endl;
-	getchar();
 	return false;
 }
 

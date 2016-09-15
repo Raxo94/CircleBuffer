@@ -7,35 +7,37 @@ struct Header
 	size_t id;
 	size_t length;
 	size_t padding;
-
-
 	// maybe number of consumers here?
 };
-
+struct Control
+{
+	size_t header;
+	size_t Tail;
+};
 
 class CircBufferFixed
 {
 	
 private:
-	
-    // your private stuff,
-    // implementation details, etc.
-    
-
 	LPCWSTR buffName;
-	char* bufferPointer;
-	
 
-	size_t buffSize, 
-		MessageCount, 
-		chunkSize;
+	size_t buffSize;
+	size_t MessageCount;
+	size_t chunkSize;
 
 	bool isProducer;
-	HANDLE MapingFile, consoleHandle;
+	HANDLE MapingFile, ControlFile;
+	HANDLE consoleHandle; //used for consol text color
+	size_t head;
 
 	
 public:
-	size_t freeMemory;
+	long freeMemory;
+	char* MapPointer;
+	size_t* ControlPointer;
+	Control headTails();
+	
+
 	CircBufferFixed( // Constructor
             LPCWSTR buffName,          // unique name
             const size_t& buffSize,    // size of the whole filemap
@@ -45,7 +47,6 @@ public:
     
 	~CircBufferFixed(); // Destructor
 
-	//bool createMapingProducer(), createMapingConsumer(); 
 	bool createMaping(); //returns true if success
 	bool read(const void* msg, size_t length);
 
