@@ -1,10 +1,11 @@
 
-#include "stdio.h"
 #include <iostream>
 #include "CircBuffer.h"
-#include <thread> 
-#include <chrono>   
-#include "OExtraFunctions.hpp"
+
+
+void showUsage(); //called if program is being used incorrect
+void gen_random(char * s, const int len);
+
 
 int main(size_t argc, char* argv[])
 {	
@@ -12,13 +13,9 @@ int main(size_t argc, char* argv[])
 	using namespace std;
 	bool isProducer = false;  //program is a producer or consumer
 
-	if (argc < 6)	//handle arguments
-	{
-		showUsage();
-	}
+	if (argc < 6) { showUsage(); }
 
-							 
-
+				
 	if (strcmp("producer", argv[1]) == 0)
 	{
 		SetConsoleTitle(L"Producer");
@@ -26,7 +23,7 @@ int main(size_t argc, char* argv[])
 	}
 	else if (strcmp("consumer", argv[1]) == 0)
 	{
-		SetConsoleTitle(L"Producer");
+		SetConsoleTitle(L"Consumer");
 		isProducer = false;
 	}
 	else { showUsage(); }
@@ -39,86 +36,67 @@ int main(size_t argc, char* argv[])
 	size_t chunkSize = 256;					  //Padding. It is a thing
 	
 
-	SetConsoleTextAttribute(consoleHandle, 11);
+	/*SetConsoleTextAttribute(consoleHandle, 11);
 	cout << "IsProducer?: " << isProducer << endl;
 	cout << "delay:" << delay << endl;
 	cout << "BufferSize: " << bufferSize << endl;
 	cout << "Amount of messages: " << numMessages << endl;
 	cout << "Chunk size: " << chunkSize << endl << endl;
-	SetConsoleTextAttribute(consoleHandle, 15);
+	SetConsoleTextAttribute(consoleHandle, 15);*/
 	
 	
 	
-	CircBufferFixed* CircleBuffer = new CircBufferFixed(L"Buffer",bufferSize,isProducer,chunkSize);
-
-	CircleBuffer->createMaping();
+	CircBufferFixed* CircleBuffer = new CircBufferFixed(L"Buffer", isProducer,bufferSize,chunkSize);
 	
-	
-	if(isProducer == true)
+	if(isProducer)
 	{
+		bool result;
 		for (size_t i = 1; i <= numMessages; i++)
 		{
-
-			this_thread::sleep_for(std::chrono::milliseconds(delay)); 
-			
-
-			char* message= new char[MsgSize]();
+			char* message = new char[MsgSize]();
 			gen_random(message, MsgSize);
 
-			size_t HeaderSize = sizeof(Header);
-			if (CircleBuffer->freeMemory > (MsgSize + sizeof(Header)))
-			{
-				CircleBuffer->push(message, MsgSize);
-				CircleBuffer->freeMemory -= (MsgSize + sizeof(Header));
+			cout << "Message:  " << message << endl << endl;
 
-
-		
-				SetConsoleTextAttribute(consoleHandle, 14);
-				cout << "Message " << i;
-				cout << ":  " << message << endl << endl;
-				SetConsoleTextAttribute(consoleHandle, 15);
-				cout << "FreeMemory= " << CircleBuffer->freeMemory << endl << endl << endl;
-
-			}
-
-			else //if there is no memory;
-			{
-				cout << "OUT OF MEMORY" << endl;
-				getchar(); //remove this and you get error
-				CircleBuffer->push(message, MsgSize);
-				CircleBuffer->freeMemory -= MsgSize + sizeof(Header);
-
-				cout << "Message ID " << i;
-				cout << ":  " << message << endl << endl;
-				SetConsoleTextAttribute(consoleHandle, 15);
-				cout << "FreeMemory= " << CircleBuffer->freeMemory << endl << endl << endl;
-
-				getchar();
-			}
-			
+			if(!CircleBuffer->push(message, MsgSize))
+				break;
 		}
-	
 	}
-	else if(isProducer == false)
+	else
 	{
-		
-		Control Controller = CircleBuffer->headTails();
-
-		cout << "head = " << Controller.header << endl << "Tail = " << Controller.Tail;
-		getchar();
-		Header* header = new Header();
 		for (size_t i = 1; i <= numMessages; i++)
 		{
-			this_thread::sleep_for(std::chrono::milliseconds(delay));
-
-			CircleBuffer->read(header, header->length);
-			
+			char* message = new char[bufferSize/4]();
+			CircleBuffer->pop(message, MsgSize);
+			cout << message << endl << endl;
 		}
-		delete header;
-			
 	}
 		
 	getchar();
 	delete CircleBuffer;
+}
+
+
+
+
+void showUsage() //called if program is being used incorrect
+{
+	std::cout << "Usage: program [producer|consumer] delay buffSize numMsg random|msgSize" << std::endl;
+	getchar();
+	exit(0);
+}
+
+
+void gen_random(char * s, const int len)
+{
+	static const char alphanum[] =
+		"0123456789"
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		"abcdefghijklmnopqrstuvwxyz";
+
+	for (auto i = 0; i < len; ++i) {
+		s[i] = alphanum[rand() % (sizeof(alphanum) - 1)];
+	}
+	s[len - 1] = 0;
 }
 

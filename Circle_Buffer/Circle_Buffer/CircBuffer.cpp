@@ -6,26 +6,19 @@
 #include <iostream>
 
 
-Control CircBufferFixed::headTails()
-{
-	Control ControlVariables;
-	
 
-	memcpy(&ControlVariables, ControlPointer, sizeof(Control));
-	return ControlVariables;
-}
-
-CircBufferFixed::CircBufferFixed(LPCWSTR buffName, const size_t & buffSize, const bool & isProducer, const size_t & chunkSize)
+CircBufferFixed::CircBufferFixed(LPCWSTR buffName, const bool & isProducer, const size_t & buffSize, const size_t & chunkSize)
 {
 	this->buffName = buffName;
-	this->freeMemory = this->buffSize = buffSize;
+	this->buffSize = buffSize;
+	this->freeMemory = buffSize;
 	this->isProducer = isProducer;
 	this->chunkSize = chunkSize;
-	this->head = 0;
-
+	this->ClientPosition = 0;
 	this->MessageCount = 0;
-	this->MapingFile = NULL;
 	this->consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+
+	createMaping();
 }
 
 CircBufferFixed::~CircBufferFixed()
@@ -49,7 +42,6 @@ bool CircBufferFixed::createMaping()
 		_tprintf(TEXT("Could not create file mapping object (%d).\n"), GetLastError());
 		return false;
 	}
-
 
 	this->MapPointer = (char*)MapViewOfFile(this->MapingFile, FILE_MAP_ALL_ACCESS, 0, 0, buffSize);
 
@@ -78,6 +70,7 @@ bool CircBufferFixed::createMaping()
 		CloseHandle(this->MapingFile);
 		return false;
 	}
+	
 	size_t tail = 0;
 	memcpy(&ControlPointer[1], &tail, sizeof(size_t)); //set the tail;
 	return true;
@@ -86,54 +79,79 @@ bool CircBufferFixed::createMaping()
 
 
 
-bool CircBufferFixed::push(const void * msg, size_t length)
+bool CircBufferFixed::push(const void * message, size_t length)
 {
-	Header currentHeader;
-	currentHeader.id = MessageCount;
-	currentHeader.length = length;
-	currentHeader.padding = 0;
-
-	memcpy(&MapPointer[head], &currentHeader, sizeof(Header));
-	head += sizeof(Header);
-
-	memcpy(&MapPointer[head], msg, length);
-	head += length;
 	
 	
-	cout << "Message ID: " << currentHeader.id << endl;
-	cout << "Message Length: " << currentHeader.length << endl;
-	cout << "Header: " << head<< endl << endl;
-	MessageCount += 1;
 
+	if (freeMemory > (length + sizeof(Header))) // IF THERE IS MEMORY
+	{
+		
+		Header messageHeader;
+		messageHeader.id = MessageCount;
+		messageHeader.length = length;
+		messageHeader.padding = 0;
+
+		memcpy(&MapPointer[ClientPosition], &messageHeader, sizeof(Header)); //WRITE HEADER
+		ClientPosition += sizeof(Header); //move header
+
+		memcpy(&MapPointer[ClientPosition], message, length); //WRITE MESSAGE
+		ClientPosition += length; //move header
+
+		freeMemory -= (length + sizeof(Header));
+
+		cout << "Message ID: " << messageHeader.id << endl;
+		cout << "Message Length: " << messageHeader.length << endl;
+		cout << "Header: " << ClientPosition << endl << endl;
+		MessageCount += 1;
+
+		memcpy(&ControlPointer[HEAD], &ClientPosition, sizeof(size_t));
+		cout << "FreeMemory= " << freeMemory << endl << endl << endl;
+
+	}
+	else //IF THERE IS NO MEMORY;
+	{
+		cout << "OUT OF MEMORY" << endl;
+		return false;
+
+	}
 	
-
-	memcpy(ControlPointer,&head,sizeof(size_t));
-
-
-	return false;
-
+	delete[] message;
+	return true;
 }
 
-bool CircBufferFixed::read(const void* msg, size_t length)
-{
-	Header readHeader;
-	memcpy(&readHeader, &MapPointer[head], sizeof(Header));
-	head += sizeof(Header);
 
+bool CircBufferFixed::pop(char * message, size_t & length)
+{
+	Header messageHeader;
+	size_t *head = ControlPointer;
+	size_t *tail = head + 1; 
+		
 	
-	char* readMessage = new char[readHeader.length];
-	memcpy(readMessage, &MapPointer[head], readHeader.length);
-	head += readHeader.length;
+	while (*tail == *head)
+	{
+		this_thread::sleep_for(std::chrono::milliseconds(5));
+		cout << "head = " << *head << endl << "Tail = " << *tail << endl << endl;
+	}
 
-	SetConsoleTextAttribute(consoleHandle, 15); //change consol text color
-	cout << "Message ID: " << readHeader.id << endl;
-	cout << "Message Length: " << readHeader.length << endl;
-	SetConsoleTextAttribute(consoleHandle, 7); //change consol text color
-	cout << readMessage << endl;
-	return false;
+	cout << "head = " << *head << endl << "Tail = " <<*tail <<endl << endl;
+
+	memcpy(&messageHeader, &MapPointer[this->ClientPosition], sizeof(Header));
+	ClientPosition += sizeof(Header);
+
+	memcpy(message, &MapPointer[this->ClientPosition], messageHeader.length);
+	ClientPosition += messageHeader.length;
+
+	cout << "Message ID: " << messageHeader.id << endl;
+	cout << "Message Length: " << messageHeader.length << endl;
+	
+
+	memcpy(&ControlPointer[TAIL], &this->ClientPosition, sizeof(size_t)); //update tail
+	return true;
 }
 
-bool CircBufferFixed::pop(char * msg, size_t & length)
-{
-	return false;
-}
+
+
+
+
+
