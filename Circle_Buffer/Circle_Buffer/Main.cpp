@@ -36,16 +36,8 @@ int main(size_t argc, char* argv[])
 	size_t chunkSize = 256;					  //Padding. It is a thing
 	
 
-	/*SetConsoleTextAttribute(consoleHandle, 11);
-	cout << "IsProducer?: " << isProducer << endl;
-	cout << "delay:" << delay << endl;
-	cout << "BufferSize: " << bufferSize << endl;
-	cout << "Amount of messages: " << numMessages << endl;
-	cout << "Chunk size: " << chunkSize << endl << endl;
-	SetConsoleTextAttribute(consoleHandle, 15);*/
-	
-	
-	
+	SetConsoleTextAttribute(consoleHandle, 15);
+
 	CircBufferFixed* CircleBuffer = new CircBufferFixed(L"Buffer", isProducer,bufferSize,chunkSize);
 	
 	if(isProducer)

@@ -81,8 +81,6 @@ bool CircBufferFixed::createMaping()
 
 bool CircBufferFixed::push(const void * message, size_t length)
 {
-	
-	
 
 	if (freeMemory > (length + sizeof(Header))) // IF THERE IS MEMORY
 	{
@@ -112,7 +110,8 @@ bool CircBufferFixed::push(const void * message, size_t length)
 	else //IF THERE IS NO MEMORY;
 	{
 		cout << "OUT OF MEMORY" << endl;
-		return false;
+		freeMemory = buffSize;
+		ClientPosition = 0; //this is a test
 
 	}
 	
@@ -148,6 +147,8 @@ bool CircBufferFixed::pop(char * message, size_t & length)
 
 	memcpy(&ControlPointer[TAIL], &this->ClientPosition, sizeof(size_t)); //update tail
 	return true;
+
+	//
 }
 
 
