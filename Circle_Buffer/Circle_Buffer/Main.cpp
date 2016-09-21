@@ -45,22 +45,27 @@ int main(size_t argc, char* argv[])
 		bool result;
 		for (size_t i = 1; i <= numMessages; i++)
 		{
+			Sleep(delay);
 			char* message = new char[MsgSize]();
 			gen_random(message, MsgSize);
 
-			cout << "Message:  " << message << endl << endl;
-
-			if(!CircleBuffer->push(message, MsgSize))
-				break;
+			while (CircleBuffer->push(message, MsgSize) == false)
+			{
+				Sleep(delay);
+			}
+				
 		}
 	}
 	else
 	{
 		for (size_t i = 1; i <= numMessages; i++)
 		{
+			Sleep(delay);
 			char* message = new char[bufferSize/4]();
-			CircleBuffer->pop(message, MsgSize);
-			cout << message << endl << endl;
+			while (CircleBuffer->pop(message, MsgSize) == false)
+			{
+				Sleep(delay);
+			}
 		}
 	}
 		

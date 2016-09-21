@@ -11,14 +11,15 @@ CircBufferFixed::CircBufferFixed(LPCWSTR buffName, const bool & isProducer, cons
 {
 	this->buffName = buffName;
 	this->buffSize = buffSize;
-	this->freeMemory = buffSize;
 	this->isProducer = isProducer;
 	this->chunkSize = chunkSize;
 	this->ClientPosition = 0;
 	this->MessageCount = 0;
 	this->consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+	
 
 	createMaping();
+	//*ControlPointer = buffSize - 2000;
 }
 
 CircBufferFixed::~CircBufferFixed()
@@ -30,6 +31,8 @@ CircBufferFixed::~CircBufferFixed()
 	CloseHandle(ControlFile);
 
 }
+
+
 
 
 bool CircBufferFixed::createMaping()
@@ -78,11 +81,33 @@ bool CircBufferFixed::createMaping()
 
 
 
+size_t CircBufferFixed::CalculateFreeMemory()
+{
+	size_t freeMemory;
+	if (ControlPointer[HEAD] >= ControlPointer[TAIL])
+	{
+		return freeMemory = (buffSize - ControlPointer[HEAD]) + ControlPointer[TAIL];
+	}
+	else
+	{
+		return freeMemory = ControlPointer[TAIL] - ControlPointer[HEAD];
+	}
+}
+
+
+
 
 bool CircBufferFixed::push(const void * message, size_t length)
 {
+	//still no padding. apparantly helps make sure there is space for header.
+	if (ClientPosition == buffSize) // if we happened to fill the entire buffer;
+	{
+		cout << "ENTIRE BUFFER FILLED MOVING HEADER TO START" << endl;
+		ClientPosition = 0;
+		getchar();
+	}
 
-	if (freeMemory > (length + sizeof(Header))) // IF THERE IS MEMORY
+	if (CalculateFreeMemory() > (sizeof(Header) + length)) // if there is enough free memory to make a messag MIGHT COUSE ERROR 
 	{
 		
 		Header messageHeader;
@@ -90,31 +115,47 @@ bool CircBufferFixed::push(const void * message, size_t length)
 		messageHeader.length = length;
 		messageHeader.padding = 0;
 
-		memcpy(&MapPointer[ClientPosition], &messageHeader, sizeof(Header)); //WRITE HEADER
+		memcpy(&MapPointer[ClientPosition], &messageHeader, sizeof(Header)); //WRITE HEADER Because of padding there should be enough space... Apparantly
 		ClientPosition += sizeof(Header); //move header
 
-		memcpy(&MapPointer[ClientPosition], message, length); //WRITE MESSAGE
-		ClientPosition += length; //move header
+		if (buffSize - ClientPosition >= length)
+		{
+			memcpy(&MapPointer[ClientPosition], message, length); //WRITE MESSAGE
+			ClientPosition += length; //move header
 
-		freeMemory -= (length + sizeof(Header));
+			memcpy(&ControlPointer[HEAD], &ClientPosition, sizeof(size_t));
+			
+			
+		}
+		else //if no then just jump to start
+		{
+			ClientPosition = 0;
+			memcpy(&MapPointer[ClientPosition], message, length); //WRITE MESSAGE
+			ClientPosition += length; //move header
+
+			memcpy(&ControlPointer[HEAD], &ClientPosition, sizeof(size_t));
+			
+			/*getchar();
+			fflush(stdin);*/
+		}
 
 		cout << "Message ID: " << messageHeader.id << endl;
-		cout << "Message Length: " << messageHeader.length << endl;
-		cout << "Header: " << ClientPosition << endl << endl;
-		MessageCount += 1;
-
-		memcpy(&ControlPointer[HEAD], &ClientPosition, sizeof(size_t));
-		cout << "FreeMemory= " << freeMemory << endl << endl << endl;
-
+		//cout << "Message Length: " << messageHeader.length << endl;
+		//cout << "Header: " << ClientPosition << endl << endl;
+		cout << "Message:  " << (char*)message << endl << endl;
+		cout << "FreeMemory= " << CalculateFreeMemory() << endl << endl << endl;
 	}
-	else //IF THERE IS NO MEMORY;
+
+
+	else
 	{
-		cout << "OUT OF MEMORY" << endl;
-		freeMemory = buffSize;
-		ClientPosition = 0; //this is a test
-
+		cout << "out of memory";
+		return false;
 	}
-	
+
+
+
+	MessageCount += 1;
 	delete[] message;
 	return true;
 }
@@ -122,33 +163,48 @@ bool CircBufferFixed::push(const void * message, size_t length)
 
 bool CircBufferFixed::pop(char * message, size_t & length)
 {
-	Header messageHeader;
-	size_t *head = ControlPointer;
-	size_t *tail = head + 1; 
-		
-	
-	while (*tail == *head)
+
+	if (ClientPosition == buffSize) // if we happened to fill the entire buffer;
 	{
-		this_thread::sleep_for(std::chrono::milliseconds(5));
-		cout << "head = " << *head << endl << "Tail = " << *tail << endl << endl;
+		cout << "ENTIRE BUFFER FILLED MOVING HEADER TO START" << endl;
+		ClientPosition = 0;
+		getchar();
 	}
 
-	cout << "head = " << *head << endl << "Tail = " <<*tail <<endl << endl;
-
+	
+		
+	if (ControlPointer[HEAD] == ControlPointer[TAIL])
+	{
+		cout << "head = " << ControlPointer[HEAD] << endl << "Tail = " << ControlPointer[TAIL] << endl << endl;
+		return false;
+		
+	}
+	Header messageHeader;
 	memcpy(&messageHeader, &MapPointer[this->ClientPosition], sizeof(Header));
 	ClientPosition += sizeof(Header);
 
-	memcpy(message, &MapPointer[this->ClientPosition], messageHeader.length);
-	ClientPosition += messageHeader.length;
+
+	if (buffSize - ClientPosition >= messageHeader.length)
+	{
+		memcpy(message, &MapPointer[this->ClientPosition], messageHeader.length);
+		ClientPosition += messageHeader.length;
+		memcpy(&ControlPointer[TAIL], &this->ClientPosition, sizeof(size_t)); //update tail
+		
+	}
+	else 
+	{
+		ClientPosition = 0;
+		memcpy(message, &MapPointer[this->ClientPosition], messageHeader.length);
+		ClientPosition += messageHeader.length;
+		memcpy(&ControlPointer[TAIL], &this->ClientPosition, sizeof(size_t)); //update tail
+
+	}
 
 	cout << "Message ID: " << messageHeader.id << endl;
 	cout << "Message Length: " << messageHeader.length << endl;
-	
-
-	memcpy(&ControlPointer[TAIL], &this->ClientPosition, sizeof(size_t)); //update tail
+	cout << message << endl << endl;
 	return true;
-
-	//
+	
 }
 
 

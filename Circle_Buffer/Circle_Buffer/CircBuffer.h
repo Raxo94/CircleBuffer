@@ -30,7 +30,6 @@ private:
 	size_t buffSize;
 	size_t MessageCount;
 	size_t chunkSize;
-
 	bool isProducer;
 	HANDLE MapingFile, ControlFile;
 	HANDLE consoleHandle; //used for consol text color
@@ -53,7 +52,7 @@ public:
     
 	~CircBufferFixed(); // Destructor
 
-	
+	size_t CalculateFreeMemory();
 
     // try to send a message through the buffer,
     // if returns true, then it succeeded, otherwise the message has not been sent.
