@@ -68,8 +68,7 @@ int main(size_t argc, char* argv[])
 			}
 		}
 	}
-	fflush(stdin);
-	getchar();
+	
 	delete CircleBuffer;
 }
 
