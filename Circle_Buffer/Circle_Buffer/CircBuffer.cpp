@@ -102,7 +102,7 @@ bool CircBufferFixed::push(const void * message, size_t length)
 	//still no padding. apparantly helps make sure there is space for header.
 	if (ClientPosition == buffSize) // if we happened to fill the entire buffer;
 	{
-		cout << "ENTIRE BUFFER FILLED MOVING HEADER TO START" << endl;
+		//cout << "ENTIRE BUFFER FILLED MOVING HEADER TO START" << endl;
 		ClientPosition = 0;
 		getchar();
 	}
@@ -139,17 +139,14 @@ bool CircBufferFixed::push(const void * message, size_t length)
 			fflush(stdin);*/
 		}
 
-		cout << "Message ID: " << messageHeader.id << endl;
-		//cout << "Message Length: " << messageHeader.length << endl;
-		//cout << "Header: " << ClientPosition << endl << endl;
-		cout << "Message:  " << (char*)message << endl << endl;
-		cout << "FreeMemory= " << CalculateFreeMemory() << endl << endl << endl;
+		cout << "Message ID: " << MessageCount << endl;
+		cout << (char*)message << endl << endl << endl;
 	}
 
 
 	else
 	{
-		cout << "out of memory";
+		//cout << "out of memory";
 		return false;
 	}
 
@@ -166,7 +163,7 @@ bool CircBufferFixed::pop(char * message, size_t & length)
 
 	if (ClientPosition == buffSize) // if we happened to fill the entire buffer;
 	{
-		cout << "ENTIRE BUFFER FILLED MOVING HEADER TO START" << endl;
+		//cout << "ENTIRE BUFFER FILLED MOVING HEADER TO START" << endl;
 		ClientPosition = 0;
 		getchar();
 	}
@@ -175,7 +172,7 @@ bool CircBufferFixed::pop(char * message, size_t & length)
 		
 	if (ControlPointer[HEAD] == ControlPointer[TAIL])
 	{
-		cout << "head = " << ControlPointer[HEAD] << endl << "Tail = " << ControlPointer[TAIL] << endl << endl;
+		//cout << "head = " << ControlPointer[HEAD] << endl << "Tail = " << ControlPointer[TAIL] << endl << endl;
 		return false;
 		
 	}
@@ -201,8 +198,7 @@ bool CircBufferFixed::pop(char * message, size_t & length)
 	}
 
 	cout << "Message ID: " << messageHeader.id << endl;
-	cout << "Message Length: " << messageHeader.length << endl;
-	cout << message << endl << endl;
+	cout << message << endl << endl << endl;
 	return true;
 	
 }
