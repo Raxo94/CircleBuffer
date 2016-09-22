@@ -99,21 +99,17 @@ size_t CircBufferFixed::CalculateFreeMemory()
 
 bool CircBufferFixed::push(const void * message, size_t length)
 {
-	
-	if (CalculateFreeMemory() > (sizeof(Header) + length)) // if there is enough free memory to make a messag MIGHT COUSE ERROR 
+	Header messageHeader;
+	messageHeader.padding = chunkSize - ((ClientPosition + sizeof(Header) + length) % chunkSize); //pading my way.
+	messageHeader.id = MessageCount;
+	messageHeader.length = length;
+
+	if (CalculateFreeMemory() > (sizeof(Header) + length + messageHeader.padding)) // if there is enough free memory to make a messag MIGHT COUSE ERROR 
 	{
 		if (ClientPosition == buffSize) // if we happened to fill the entire buffer;
-		{ //om den paddar sig upp till buffsize sätter den till noll.
-			//cout << "ENTIRE BUFFER FILLED MOVING HEADER TO START" << endl;
-			getchar();
+		{ 
 			ClientPosition = 0;
 		}
-
-		Header messageHeader;
-		messageHeader.id = MessageCount;
-		messageHeader.length = length;
-		messageHeader.padding = chunkSize - ((ClientPosition + sizeof(Header) + length) % chunkSize); //pading my way.
-
 
 		memcpy(&MapPointer[ClientPosition], &messageHeader, sizeof(Header)); //WRITE HEADER Because of padding there should be enough space... Apparantly
 		ClientPosition += sizeof(Header); //move header
@@ -135,7 +131,7 @@ bool CircBufferFixed::push(const void * message, size_t length)
 		ClientPosition += messageHeader.padding;
 		memcpy(&ControlPointer[HEAD], &ClientPosition, sizeof(size_t));
 		cout << MessageCount << " ";
-		cout << (char*)message << endl <<endl << "FREE: " << CalculateFreeMemory() <<endl << endl;
+		cout << (char*)message <<endl << endl<< endl;
 	}
 
 
@@ -190,8 +186,8 @@ bool CircBufferFixed::pop(char * message, size_t & length)
 
 	ClientPosition += messageHeader.padding;
 	memcpy(&ControlPointer[TAIL], &this->ClientPosition, sizeof(size_t)); //update tail
-	cout << "Message ID: " << messageHeader.id << endl;
-	cout << message << endl << endl << endl;
+	cout <<  message << " ";
+	cout << (char*)message << endl << endl << endl;
 	return true;
 	
 }

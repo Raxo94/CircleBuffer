@@ -148,9 +148,11 @@
   <ItemGroup>
     <ClCompile Include="CircBuffer.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Mutex.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CircBuffer.h" />
+    <ClInclude Include="Mutex.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
