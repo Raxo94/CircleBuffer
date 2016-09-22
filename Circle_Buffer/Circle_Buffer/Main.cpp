@@ -2,15 +2,28 @@
 #include <iostream>
 #include "CircBuffer.h"
 #include <time.h>
-
+#include <windows.h>
 
 void showUsage(); //called if program is being used incorrect
-void gen_random(char * s, const int len);
+void gen_randomString(char * s, const int len);
+size_t randomSize(size_t min, size_t max);
 
+HANDLE ghMutex;
 
 int main(size_t argc, char* argv[])
 {
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF); // detect memory leaks
+
+	ghMutex = CreateMutex(
+		NULL,              // default security attributes
+		FALSE,             // initially not owned
+		NULL);             // unnamed mutex
+
+	if (ghMutex == NULL)
+	{
+		printf("CreateMutex error: %d\n", GetLastError());
+		return 1;
+	}
 
 
 	if (argc < 6) { showUsage(); }
@@ -53,17 +66,16 @@ int main(size_t argc, char* argv[])
 
 			if (random)
 			{
-				size_t size = rand() % maxMessageSize;
+				size_t size = randomSize(1, maxMessageSize);
 				message = new char[size]();
-				gen_random(message, size);
+				gen_randomString(message, size);
 				while (CircleBuffer->push(message, size) == false)
 				{
 					Sleep(delay);
 					delete[] message; //Delete and make a new message
-					size = rand() % maxMessageSize;
+					size = randomSize(1, maxMessageSize);
 					message = new char[size]();
-					gen_random(message, size);
-					
+					gen_randomString(message, size);
 				}
 				delete[] message; //Delete message
 			}
@@ -71,7 +83,7 @@ int main(size_t argc, char* argv[])
 			else // if not random
 			{
 				message = new char[MsgSize]();
-				gen_random(message, MsgSize);
+				gen_randomString(message, MsgSize);
 
 				while (CircleBuffer->push(message, MsgSize) == false)
 				{
@@ -114,7 +126,7 @@ void showUsage() //called if program is being used incorrect
 }
 
 
-void gen_random(char * s, const int len)
+void gen_randomString(char * s, const int len)
 {
 	static const char alphanum[] =
 		"0123456789"
@@ -127,3 +139,14 @@ void gen_random(char * s, const int len)
 	s[len - 1] = 0;
 }
 
+size_t randomSize(size_t min, size_t max)
+{
+	if (max - min != 0)
+	{
+		size_t result = rand() % ((max +1) - min);
+		result += min;
+		return result;
+	}
+	else return 1;
+
+}

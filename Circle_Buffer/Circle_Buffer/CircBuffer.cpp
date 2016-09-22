@@ -99,15 +99,16 @@ size_t CircBufferFixed::CalculateFreeMemory()
 
 bool CircBufferFixed::push(const void * message, size_t length)
 {
-	if (ClientPosition == buffSize) // if we happened to fill the entire buffer;
-	{
-		//cout << "ENTIRE BUFFER FILLED MOVING HEADER TO START" << endl;
-		ClientPosition = 0;
-		//getchar();
-	}
-
+	
 	if (CalculateFreeMemory() > (sizeof(Header) + length)) // if there is enough free memory to make a messag MIGHT COUSE ERROR 
 	{
+		if (ClientPosition == buffSize) // if we happened to fill the entire buffer;
+		{ //om den paddar sig upp till buffsize sätter den till noll.
+			//cout << "ENTIRE BUFFER FILLED MOVING HEADER TO START" << endl;
+			getchar();
+			ClientPosition = 0;
+		}
+
 		Header messageHeader;
 		messageHeader.id = MessageCount;
 		messageHeader.length = length;
@@ -163,11 +164,10 @@ bool CircBufferFixed::pop(char * message, size_t & length)
 
 	
 		
-	if (ControlPointer[HEAD] == ControlPointer[TAIL])
+	if (this->ClientPosition == ControlPointer[HEAD]) // if client reached the head
 	{
 		//cout << "head = " << ControlPointer[HEAD] << endl << "Tail = " << ControlPointer[TAIL] << endl << endl;
 		return false;
-		
 	}
 	Header messageHeader;
 	memcpy(&messageHeader, &MapPointer[this->ClientPosition], sizeof(Header));
