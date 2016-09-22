@@ -99,21 +99,20 @@ size_t CircBufferFixed::CalculateFreeMemory()
 
 bool CircBufferFixed::push(const void * message, size_t length)
 {
-	//still no padding. apparantly helps make sure there is space for header.
 	if (ClientPosition == buffSize) // if we happened to fill the entire buffer;
 	{
 		//cout << "ENTIRE BUFFER FILLED MOVING HEADER TO START" << endl;
 		ClientPosition = 0;
-		getchar();
+		//getchar();
 	}
 
 	if (CalculateFreeMemory() > (sizeof(Header) + length)) // if there is enough free memory to make a messag MIGHT COUSE ERROR 
 	{
-		
 		Header messageHeader;
 		messageHeader.id = MessageCount;
 		messageHeader.length = length;
-		messageHeader.padding = 0;
+		messageHeader.padding = chunkSize - ((ClientPosition + sizeof(Header) + length) % chunkSize); //pading my way.
+
 
 		memcpy(&MapPointer[ClientPosition], &messageHeader, sizeof(Header)); //WRITE HEADER Because of padding there should be enough space... Apparantly
 		ClientPosition += sizeof(Header); //move header
@@ -122,10 +121,6 @@ bool CircBufferFixed::push(const void * message, size_t length)
 		{
 			memcpy(&MapPointer[ClientPosition], message, length); //WRITE MESSAGE
 			ClientPosition += length; //move header
-
-			memcpy(&ControlPointer[HEAD], &ClientPosition, sizeof(size_t));
-			
-			
 		}
 		else //if no then just jump to start
 		{
@@ -133,11 +128,13 @@ bool CircBufferFixed::push(const void * message, size_t length)
 			memcpy(&MapPointer[ClientPosition], message, length); //WRITE MESSAGE
 			ClientPosition += length; //move header
 
-			memcpy(&ControlPointer[HEAD], &ClientPosition, sizeof(size_t));
+			
 		}
 
+		ClientPosition += messageHeader.padding;
+		memcpy(&ControlPointer[HEAD], &ClientPosition, sizeof(size_t));
 		cout << MessageCount << " ";
-		cout << (char*)message << endl << endl << endl;
+		cout << (char*)message << endl <<endl << "FREE: " << CalculateFreeMemory() <<endl << endl;
 	}
 
 
@@ -150,7 +147,6 @@ bool CircBufferFixed::push(const void * message, size_t length)
 
 
 	MessageCount += 1;
-	delete[] message;
 	return true;
 }
 
@@ -162,7 +158,7 @@ bool CircBufferFixed::pop(char * message, size_t & length)
 	{
 		//cout << "ENTIRE BUFFER FILLED MOVING HEADER TO START" << endl;
 		ClientPosition = 0;
-		getchar();
+		//getchar();
 	}
 
 	
@@ -182,18 +178,18 @@ bool CircBufferFixed::pop(char * message, size_t & length)
 	{
 		memcpy(message, &MapPointer[this->ClientPosition], messageHeader.length);
 		ClientPosition += messageHeader.length;
-		memcpy(&ControlPointer[TAIL], &this->ClientPosition, sizeof(size_t)); //update tail
-		
 	}
 	else 
 	{
 		ClientPosition = 0;
 		memcpy(message, &MapPointer[this->ClientPosition], messageHeader.length);
 		ClientPosition += messageHeader.length;
-		memcpy(&ControlPointer[TAIL], &this->ClientPosition, sizeof(size_t)); //update tail
+	
 
 	}
 
+	ClientPosition += messageHeader.padding;
+	memcpy(&ControlPointer[TAIL], &this->ClientPosition, sizeof(size_t)); //update tail
 	cout << "Message ID: " << messageHeader.id << endl;
 	cout << message << endl << endl << endl;
 	return true;

@@ -1,14 +1,18 @@
-
+#define _CRTDBG_MAP_ALLOC
 #include <iostream>
 #include "CircBuffer.h"
 #include <time.h>
+
 
 void showUsage(); //called if program is being used incorrect
 void gen_random(char * s, const int len);
 
 
 int main(size_t argc, char* argv[])
-{	
+{
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF); // detect memory leaks
+
+
 	if (argc < 6) { showUsage(); }
 	using namespace std;
 	srand((unsigned)time(NULL));
@@ -42,30 +46,39 @@ int main(size_t argc, char* argv[])
 	
 	if(isProducer)
 	{
+		char* message;
 		for (size_t i = 1; i <= numMessages; i++)
 		{
-			Sleep(delay);
+
+
 			if (random)
 			{
 				size_t size = rand() % maxMessageSize;
-				char* message = new char[size]();
+				message = new char[size]();
 				gen_random(message, size);
-				
-				while (CircleBuffer->push(message, MsgSize) == false)
+				while (CircleBuffer->push(message, size) == false)
 				{
 					Sleep(delay);
+					delete[] message; //Delete and make a new message
+					size = rand() % maxMessageSize;
+					message = new char[size]();
+					gen_random(message, size);
+					
 				}
+				delete[] message; //Delete message
 			}
-			else
+
+			else // if not random
 			{
-				
-				char* message = new char[MsgSize]();
+				message = new char[MsgSize]();
 				gen_random(message, MsgSize);
 
 				while (CircleBuffer->push(message, MsgSize) == false)
 				{
 					Sleep(delay);
+					//No need to generate a new message;
 				}
+				delete[] message; //delete message
 			}
 				
 		}
@@ -75,11 +88,12 @@ int main(size_t argc, char* argv[])
 		for (size_t i = 1; i <= numMessages; i++)
 		{
 			Sleep(delay);
-			char* message = new char[bufferSize/4]();
+			char* message = new char[maxMessageSize];
 			while (CircleBuffer->pop(message, MsgSize) == false)
 			{
 				Sleep(delay);
 			}
+			delete[] message; //delete message
 		}
 	}
 	//getchar()
@@ -95,7 +109,7 @@ int main(size_t argc, char* argv[])
 void showUsage() //called if program is being used incorrect
 {
 	std::cout << "Usage: program [producer|consumer] delay buffSize numMsg random|msgSize" << std::endl;
-	getchar();
+	//getchar();
 	exit(0);
 }
 
