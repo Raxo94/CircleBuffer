@@ -134,12 +134,9 @@ bool CircBufferFixed::push(const void * message, size_t length)
 			ClientPosition += length; //move header
 
 			memcpy(&ControlPointer[HEAD], &ClientPosition, sizeof(size_t));
-			
-			/*getchar();
-			fflush(stdin);*/
 		}
 
-		cout << "Message ID: " << MessageCount << endl;
+		cout << MessageCount << " ";
 		cout << (char*)message << endl << endl << endl;
 	}
 

@@ -1,7 +1,7 @@
 
 #include <iostream>
 #include "CircBuffer.h"
-
+#include <time.h>
 
 void showUsage(); //called if program is being used incorrect
 void gen_random(char * s, const int len);
@@ -9,49 +9,63 @@ void gen_random(char * s, const int len);
 
 int main(size_t argc, char* argv[])
 {	
-	HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-	using namespace std;
-	bool isProducer = false;  //program is a producer or consumer
-
 	if (argc < 6) { showUsage(); }
+	using namespace std;
+	srand((unsigned)time(NULL));
 
-				
+	bool isProducer = false;  //program is a producer or consumer
+	bool random = false;	 //is the message size random
+	size_t MsgSize = 0;     //how big should the messages be
+
 	if (strcmp("producer", argv[1]) == 0)
-	{
-		SetConsoleTitle(L"Producer");
-		isProducer = true;
-	}
+	{	SetConsoleTitle(L"Producer"); isProducer = true;}
 	else if (strcmp("consumer", argv[1]) == 0)
-	{
-		SetConsoleTitle(L"Consumer");
-		isProducer = false;
-	}
+	{	SetConsoleTitle(L"Consumer");
+		isProducer = false;}
+
 	else { showUsage(); }
+
+	if (strcmp("random", argv[5]) == 0)
+	{	random = true; }
+
+	else{MsgSize = atoi(argv[5]);}
+	
 
 	
 	size_t delay = atoi(argv[2]);				  //delay in milliseconds
 	size_t bufferSize = atoi(argv[3]) * 1 << 20; //input is in megabite so turn into bytes
 	unsigned int numMessages= atoi(argv[4]);	//How many messages do you wish to send?
-	size_t MsgSize = atoi(argv[5]);			   //And how big should the messages be
 	size_t chunkSize = 256;					  //Padding. It is a thing
-	
-
-	SetConsoleTextAttribute(consoleHandle, 15);
+	size_t maxMessageSize = bufferSize / 4;
 
 	CircBufferFixed* CircleBuffer = new CircBufferFixed(L"Buffer", isProducer,bufferSize,chunkSize);
 	
 	if(isProducer)
 	{
-		bool result;
 		for (size_t i = 1; i <= numMessages; i++)
 		{
 			Sleep(delay);
-			char* message = new char[MsgSize]();
-			gen_random(message, MsgSize);
-
-			while (CircleBuffer->push(message, MsgSize) == false)
+			if (random)
 			{
-				Sleep(delay);
+				size_t size = rand() % maxMessageSize;
+				char* message = new char[size]();
+				gen_random(message, size);
+				
+				while (CircleBuffer->push(message, MsgSize) == false)
+				{
+					Sleep(delay);
+				}
+			}
+			else
+			{
+				
+				char* message = new char[MsgSize]();
+				gen_random(message, MsgSize);
+
+				while (CircleBuffer->push(message, MsgSize) == false)
+				{
+					Sleep(delay);
+				}
 			}
 				
 		}
@@ -68,9 +82,12 @@ int main(size_t argc, char* argv[])
 			}
 		}
 	}
-	
+	//getchar()
 	delete CircleBuffer;
 }
+
+
+
 
 
 
