@@ -5,8 +5,6 @@
 #include <tchar.h>
 #include <iostream>
 
-
-
 CircBufferFixed::CircBufferFixed(LPCWSTR buffName, const bool & isProducer, const size_t & buffSize, const size_t & chunkSize)
 {
 	this->buffName = buffName;
@@ -119,7 +117,7 @@ bool CircBufferFixed::push(const void * message, size_t length)
 	messageHeader.ClientRemaining = ControlPointer[CLIENTCOUNT];
 	
 
-	if (CalculateFreeMemory() > (sizeof(Header) + length + messageHeader.padding)) // if there is enough free memory to make a messag MIGHT COUSE ERROR 
+	if (CalculateFreeMemory() >= (sizeof(Header) + length + messageHeader.padding)) // if there is enough free memory to make a messag MIGHT COUSE ERROR 
 	{
 		if (ClientPosition == buffSize) // if we happened to fill the entire buffer;
 		{ 
@@ -129,7 +127,7 @@ bool CircBufferFixed::push(const void * message, size_t length)
 		memcpy(&MapPointer[ClientPosition], &messageHeader, sizeof(Header)); //WRITE HEADER Because of padding there should be enough space... Apparantly
 		ClientPosition += sizeof(Header); //move header
 
-		if (buffSize - ClientPosition >= length)
+		if (buffSize - ClientPosition >= (length + messageHeader.padding))
 		{
 			memcpy(&MapPointer[ClientPosition], message, length); //WRITE MESSAGE
 			ClientPosition += length; //move header
@@ -143,10 +141,12 @@ bool CircBufferFixed::push(const void * message, size_t length)
 			
 		}
 
+		//ClientPosition = (ClientPosition + messageHeader.padding) % //buffSize; istället för att kolla if satser-
+
 		ClientPosition += messageHeader.padding;
 		memcpy(&ControlPointer[HEAD], &ClientPosition, sizeof(size_t));
 		cout << MessageCount << " ";
-		cout << (char*)message <<endl << endl<< endl;
+		cout << (char*)message <<endl;
 	}
 
 
@@ -166,6 +166,12 @@ bool CircBufferFixed::push(const void * message, size_t length)
 bool CircBufferFixed::pop(char * message, size_t & length)
 {
 	mutex.lock();
+	if (this->ClientPosition == ControlPointer[HEAD]) // if client reached the head
+	{
+		//cout << "head = " << ControlPointer[HEAD] << endl << "Tail = " << ControlPointer[TAIL] << endl << endl;
+		mutex.unlock();
+		return false;
+	}
 	if (ClientPosition == buffSize) // if we happened to fill the entire buffer;
 	{
 		//cout << "ENTIRE BUFFER FILLED MOVING HEADER TO START" << endl;
@@ -173,14 +179,9 @@ bool CircBufferFixed::pop(char * message, size_t & length)
 		//getchar();
 	}
 
+	//hej oskar /staffan / HEJ steffe
 	
 	
-	if (this->ClientPosition == ControlPointer[HEAD]) // if client reached the head
-	{
-		//cout << "head = " << ControlPointer[HEAD] << endl << "Tail = " << ControlPointer[TAIL] << endl << endl;
-		mutex.unlock();
-		return false;
-	}
 	
 	Header messageHeader;
 	
@@ -191,7 +192,7 @@ bool CircBufferFixed::pop(char * message, size_t & length)
 	ClientPosition += sizeof(Header); //move pointer forward;
 
 
-	if (buffSize - ClientPosition >= messageHeader.length)
+	if (buffSize - ClientPosition >= (messageHeader.length + messageHeader.padding)) // here
 	{
 		memcpy(message, &MapPointer[this->ClientPosition], messageHeader.length);
 		ClientPosition += messageHeader.length;
@@ -212,7 +213,7 @@ bool CircBufferFixed::pop(char * message, size_t & length)
 	}
 	
 	cout <<  messageHeader.id <<" ";
-	cout << (char*)message << endl << endl << endl;
+	cout << (char*)message << endl;
 	mutex.unlock();
 	return true;
 	

@@ -63,7 +63,7 @@ int main(size_t argc, char* argv[])
 		for (size_t i = 1; i <= numMessages; i++)
 		{
 
-
+			Sleep(delay);
 			if (random)
 			{
 				size_t size = randomSize(1, maxMessageSize);
@@ -71,7 +71,7 @@ int main(size_t argc, char* argv[])
 				gen_randomString(message, size);
 				while (CircleBuffer->push(message, size) == false)
 				{
-					Sleep(delay);
+					Sleep(1);
 					delete[] message; //Delete and make a new message
 					size = randomSize(1, maxMessageSize);
 					message = new char[size]();
@@ -87,7 +87,7 @@ int main(size_t argc, char* argv[])
 
 				while (CircleBuffer->push(message, MsgSize) == false)
 				{
-					Sleep(delay);
+					Sleep(1);
 					//No need to generate a new message;
 				}
 				delete[] message; //delete message
@@ -103,7 +103,7 @@ int main(size_t argc, char* argv[])
 			char* message = new char[maxMessageSize];
 			while (CircleBuffer->pop(message, MsgSize) == false)
 			{
-				Sleep(delay);
+				Sleep(1);
 			}
 			delete[] message; //delete message
 		}
