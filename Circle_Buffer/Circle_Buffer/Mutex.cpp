@@ -13,5 +13,6 @@ void Mutex::lock()
 
 void Mutex::unlock()
 {
-	ReleaseMutex(myMutex); // UNLOCK
+	ReleaseMutex(myMutex); // UNLOCK
+
 }

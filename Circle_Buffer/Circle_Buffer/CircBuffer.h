@@ -3,6 +3,7 @@
 #include <iostream>
 #include <chrono> 
 #include <thread> 
+#include "Mutex.h"
 
 using namespace std;
 
@@ -11,21 +12,24 @@ struct Header
 	size_t id;
 	size_t length;
 	size_t padding;
+	size_t ClientRemaining;
 };
 
 struct Control
 {
 	size_t head;
 	size_t Tail;
+	size_t clientCount;
 };
 class CircBufferFixed
 {
 	
 
-	enum { HEAD, TAIL };
+	enum { HEAD, TAIL, CLIENTCOUNT };
 	
 
 private:
+	Mutex mutex;
 	LPCWSTR buffName;
 	size_t buffSize;
 	size_t MessageCount;
@@ -39,6 +43,7 @@ private:
 	char* MapPointer;
 	size_t* ControlPointer;
 	bool createMaping(); //returns true if success
+	void UpdateControlBuffer();
 	
 public:
 	

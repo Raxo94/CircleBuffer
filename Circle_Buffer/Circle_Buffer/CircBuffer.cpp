@@ -19,6 +19,7 @@ CircBufferFixed::CircBufferFixed(LPCWSTR buffName, const bool & isProducer, cons
 	
 
 	createMaping();
+	UpdateControlBuffer();
 	//*ControlPointer = buffSize - 2000;
 }
 
@@ -73,13 +74,25 @@ bool CircBufferFixed::createMaping()
 		CloseHandle(this->MapingFile);
 		return false;
 	}
-	
-	size_t tail = 0;
-	memcpy(&ControlPointer[1], &tail, sizeof(size_t)); //set the tail;
 	return true;
 }
 
+void CircBufferFixed::UpdateControlBuffer()
+{
+	size_t tail = 0;
+	memcpy(&ControlPointer[TAIL], &tail, sizeof(size_t)); //set the tail;
 
+	if (isProducer == false)
+	{
+		size_t clientCount;
+		memcpy(&clientCount, &ControlPointer[CLIENTCOUNT], sizeof(size_t)); //getClientCount;
+		clientCount += 1;
+		memcpy(&ControlPointer[CLIENTCOUNT], &clientCount, sizeof(size_t)); //set the clientCount;
+	}
+
+
+
+}
 
 size_t CircBufferFixed::CalculateFreeMemory()
 {
@@ -103,6 +116,8 @@ bool CircBufferFixed::push(const void * message, size_t length)
 	messageHeader.padding = chunkSize - ((ClientPosition + sizeof(Header) + length) % chunkSize); //pading my way.
 	messageHeader.id = MessageCount;
 	messageHeader.length = length;
+	messageHeader.ClientRemaining = ControlPointer[CLIENTCOUNT];
+	
 
 	if (CalculateFreeMemory() > (sizeof(Header) + length + messageHeader.padding)) // if there is enough free memory to make a messag MIGHT COUSE ERROR 
 	{
@@ -150,7 +165,7 @@ bool CircBufferFixed::push(const void * message, size_t length)
 
 bool CircBufferFixed::pop(char * message, size_t & length)
 {
-
+	mutex.lock();
 	if (ClientPosition == buffSize) // if we happened to fill the entire buffer;
 	{
 		//cout << "ENTIRE BUFFER FILLED MOVING HEADER TO START" << endl;
@@ -159,15 +174,21 @@ bool CircBufferFixed::pop(char * message, size_t & length)
 	}
 
 	
-		
+	
 	if (this->ClientPosition == ControlPointer[HEAD]) // if client reached the head
 	{
 		//cout << "head = " << ControlPointer[HEAD] << endl << "Tail = " << ControlPointer[TAIL] << endl << endl;
+		mutex.unlock();
 		return false;
 	}
+	
 	Header messageHeader;
-	memcpy(&messageHeader, &MapPointer[this->ClientPosition], sizeof(Header));
-	ClientPosition += sizeof(Header);
+	
+	memcpy(&messageHeader, &MapPointer[this->ClientPosition], sizeof(Header)); //read message header
+	messageHeader.ClientRemaining -= 1;
+	memcpy(&MapPointer[this->ClientPosition], &messageHeader, sizeof(Header)); //set updated message header
+
+	ClientPosition += sizeof(Header); //move pointer forward;
 
 
 	if (buffSize - ClientPosition >= messageHeader.length)
@@ -180,14 +201,19 @@ bool CircBufferFixed::pop(char * message, size_t & length)
 		ClientPosition = 0;
 		memcpy(message, &MapPointer[this->ClientPosition], messageHeader.length);
 		ClientPosition += messageHeader.length;
-	
-
 	}
 
 	ClientPosition += messageHeader.padding;
-	memcpy(&ControlPointer[TAIL], &this->ClientPosition, sizeof(size_t)); //update tail
-	cout <<  message << " ";
+
+
+	if (messageHeader.ClientRemaining == 0)
+	{
+		memcpy(&ControlPointer[TAIL], &this->ClientPosition, sizeof(size_t)); //update tail
+	}
+	
+	cout <<  messageHeader.id <<" ";
 	cout << (char*)message << endl << endl << endl;
+	mutex.unlock();
 	return true;
 	
 }
