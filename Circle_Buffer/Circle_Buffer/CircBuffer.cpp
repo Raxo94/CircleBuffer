@@ -28,8 +28,6 @@ CircBufferFixed::~CircBufferFixed()
 	UnmapViewOfFile(ControlPointer);
 	CloseHandle(ControlFile);
 
-	//delete MapPointer;
-	//delete ControlPointer;
 }
 
 
@@ -79,11 +77,15 @@ bool CircBufferFixed::createMaping()
 
 void CircBufferFixed::UpdateControlBuffer()
 {
-	ControlPointer[TAIL] = 0;
-	if (isProducer == false)
+	
+	if (isProducer)
 	{
-		ControlPointer[CLIENTCOUNT]+=1;
-		
+		ControlPointer[HEAD] = 0;
+	}
+	else
+	{
+		ControlPointer[TAIL] = 0;
+		ControlPointer[CLIENTCOUNT] += 1;
 	}
 }
 
@@ -153,6 +155,7 @@ bool CircBufferFixed::push(const void * message, size_t length)
 
 	else //NO MEMORY
 	{
+		//cout << "OUTAMEMORY" << endl;
 		return false;
 	}
 }

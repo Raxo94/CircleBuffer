@@ -9,6 +9,7 @@ using namespace std;
 //The code works consistantly. though sadly it takes longer than it should.
 //Test that can be completed in 60 secounds take roughly 150 secounds. 
 //I dont know why. The code also may get a memory leak being the allocated message memory for the consumer.
+//in realese version-10 megabites of memory doesn't work. but one megabite does.
 int main(size_t argc, char* argv[])
 {
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF); // detect memory leaks
