@@ -147,6 +147,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CircBuffer.cpp" />
+    <ClCompile Include="functions.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Mutex.cpp" />
   </ItemGroup>

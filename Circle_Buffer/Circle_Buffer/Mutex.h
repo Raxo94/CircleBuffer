@@ -3,7 +3,9 @@
 class Mutex
 {
 private:
-	HANDLE myMutex;	DWORD ms;public:
+	HANDLE myMutex;
+	DWORD ms;
+public:
 	Mutex();
 
 	void lock();

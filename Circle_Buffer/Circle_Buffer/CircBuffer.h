@@ -5,29 +5,27 @@
 #include <thread> 
 #include "Mutex.h"
 
+
 using namespace std;
-
-struct Header
-{
-	size_t id;
-	size_t length;
-	size_t padding;
-	size_t ClientRemaining;
-};
-
-struct Control
-{
-	size_t head;
-	size_t Tail;
-	size_t clientCount;
-};
 class CircBufferFixed
 {
-	
-
 	enum { HEAD, TAIL, CLIENTCOUNT };
-	
+	struct Header // Header for messages in circularBuffer 
+	{
+		size_t id;
+		size_t length;
+		size_t padding;
+		size_t ClientRemaining;
+	};
 
+	struct Control // used for measuring ControllBuffer
+	{
+		size_t head;
+		size_t Tail;
+		size_t clientCount;
+	};
+
+	
 private:
 	Mutex mutex;
 	LPCWSTR buffName;
@@ -47,17 +45,15 @@ private:
 	
 public:
 	
-	CircBufferFixed(						   // Constructor
+	CircBufferFixed(					   // Constructor
 		LPCWSTR buffName,			       // unique name
 		const bool& isProducer,			   // is this buffer going to be used as producer
 		const size_t& buffSize,			   // size of the whole filemap
 		const size_t& chunkSize);		   // round up messages to multiple of this.
-		
 
-    
 	~CircBufferFixed(); // Destructor
 
-	size_t CalculateFreeMemory();
+	size_t CalculateFreeMemory(); //returns how much emory is left in the buffer
 
     // try to send a message through the buffer,
     // if returns true, then it succeeded, otherwise the message has not been sent.
