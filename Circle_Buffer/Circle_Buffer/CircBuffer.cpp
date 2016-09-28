@@ -142,11 +142,9 @@ bool CircBufferFixed::push(const void * message, size_t length)
 		
 		ControlPointer[HEAD] = ClientPosition;
 		ClientPosition = ClientPosition % buffSize;  //filled the buffer. Pointer will be reset;
+		
 		cout << MessageCount << " ";
 		cout << (char*)message << endl;
-		//cout << CalculateFreeMemory() << endl << endl;
-
-
 
 		MessageCount += 1;
 		return true;
@@ -155,7 +153,6 @@ bool CircBufferFixed::push(const void * message, size_t length)
 
 	else //NO MEMORY
 	{
-		//cout << "NoMEMORY" << endl;
 		return false;
 	}
 }

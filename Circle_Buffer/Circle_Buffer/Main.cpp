@@ -72,6 +72,7 @@ int main(size_t argc, char* argv[])
 
 	else //IF CLIENT
 	{
+		
 		for (size_t i = 1; i <= numMessages; i++)
 		{
 			Sleep(delay);
@@ -81,8 +82,8 @@ int main(size_t argc, char* argv[])
 				Sleep(1);
 			}
 			delete[] message;
-			
 		}
+		
 		
 	}
 	//getchar()
