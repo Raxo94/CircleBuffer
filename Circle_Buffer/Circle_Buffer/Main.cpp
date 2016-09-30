@@ -18,7 +18,6 @@ int main(size_t argc, char* argv[])
 	srand((unsigned)time(NULL));   // make sure random works
 
 
-
 	bool isProducer = GetIsProducer(argv[1]);  //program is a producer or consumer
 	size_t MsgSize = 0;					  //how big should the messages be
 	bool random = GetIsRandom(argv[5]);	  //is the message size random
@@ -33,7 +32,7 @@ int main(size_t argc, char* argv[])
 
 	CircBufferFixed CircleBuffer (L"Buffer", isProducer, bufferSize, chunkSize);
 
-	char* message;
+	char* message= new char[maxMessageSize]();
 	size_t size;
 	
 	if(isProducer)
@@ -45,50 +44,40 @@ int main(size_t argc, char* argv[])
 			if (random)
 			{
 				size = randomSize(1, maxMessageSize);
-				message = new char[size]();
 				gen_randomString(message, size);
 
 				while (CircleBuffer.push(message, size) == false)
 				{	
 					Sleep(1);         
-					delete[] message; //Delete and make a new message
 					size = randomSize(1, maxMessageSize);
-					message = new char[size]();
 					gen_randomString(message, size);
 				}
 				
 			}
 			else // IF NOT RANDOM	
 			{
-				message = new char[MsgSize]();
 				gen_randomString(message, MsgSize);
 
 				while (CircleBuffer.push(message, MsgSize) == false)
 					Sleep(1);
-				delete[] message; 
-			}
-				
+			}	
 		}
 	}
 
 	else //IF CLIENT
 	{
-		
 		for (size_t i = 1; i <= numMessages; i++)
 		{
 			Sleep(delay);
-			message = new char[maxMessageSize];
 			while (CircleBuffer.pop(message, MsgSize) == false)
 			{
 				Sleep(1);
 			}
-			delete[] message;
-		}
-		
-		
+		}		
 	}
-	//getchar()
-}
+	delete[] message;
+	
+}//ENDOFCODE
 
 
 

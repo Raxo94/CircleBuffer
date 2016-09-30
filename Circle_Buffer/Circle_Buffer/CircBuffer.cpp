@@ -146,7 +146,7 @@ bool CircBufferFixed::push(const void * message, size_t length)
 		ClientPosition = ClientPosition % buffSize;  //filled the buffer. Pointer will be reset;
 		
 		cout << MessageCount << " ";
-		cout << (char*)message << endl;
+		//cout << (char*)message << endl;
 
 		MessageCount += 1;
 		return true;
@@ -154,21 +154,17 @@ bool CircBufferFixed::push(const void * message, size_t length)
 
 
 	else //NO MEMORY
-	{
-		//cout << "OUTAMEMORY" << endl;
 		return false;
-	}
 }
 
 
 bool CircBufferFixed::pop(char * message, size_t & length)
 {
 	if (this->ClientPosition == ControlPointer[HEAD]) //CONSUMER HAS READ ALL MESSAGES
-	{
-		//cout << "head = " << ControlPointer[HEAD] << endl << "Tail = " << ControlPointer[TAIL] << endl << endl;
 		return false;
-	}
 
+	ClientPosition = ClientPosition % buffSize; //filled the buffer. Pointer will be reset;
+	 
 	mutex.lock();
 	Header* messageHeader= (Header*)&MapPointer[this->ClientPosition]; //read header
 	messageHeader->ClientRemaining -= 1;
@@ -186,16 +182,14 @@ bool CircBufferFixed::pop(char * message, size_t & length)
 
 	ClientPosition += messageHeader->length;
 	ClientPosition += messageHeader->padding;
-	ClientPosition = ClientPosition % buffSize; //filled the buffer. Pointer will be reset;
 
 	if (messageHeader->ClientRemaining == 0)
-	{
 		ControlPointer[TAIL] = ClientPosition;
-	}
+
 	mutex.unlock(); //Allow other clients to read
 
 	cout <<  messageHeader->id <<" ";
-	cout << (char*)message << endl;
+	//cout << (char*)message << endl;
 	
 
 	
