@@ -69,7 +69,7 @@ int main(size_t argc, char* argv[])
 		for (size_t i = 1; i <= numMessages; i++)
 		{
 			Sleep(delay);
-			while (CircleBuffer.pop(message, MsgSize) == false)
+			while (CircleBuffer.pop(message) == false)
 			{
 				Sleep(1);
 			}

@@ -27,6 +27,7 @@ class CircBufferFixed
 
 	
 private:
+	
 	Mutex mutex;
 	LPCWSTR buffName;
 	size_t buffSize;
@@ -34,7 +35,6 @@ private:
 	size_t chunkSize;
 	bool isProducer;
 	HANDLE MapingFile, ControlFile;
-	HANDLE consoleHandle; //used for consol text color
 	size_t ClientPosition;
 	size_t numberOfMessages;
 	size_t freeMemory;
@@ -58,13 +58,13 @@ public:
     // try to send a message through the buffer,
     // if returns true, then it succeeded, otherwise the message has not been sent.
     // it should return false if the buffer does not have enough space.
-	bool push(const void* msg, size_t length);
+	bool push(const char* msg, size_t length);
 
 
     // try to read a message from the buffer, and the implementation puts the content
     // in the memory. The memory is expected to be allocated by the program that calls
     // this function.
     // The variable length will be changed to reflect the size of the msg just read.
-	bool pop(char* message, size_t& length);
+	bool pop(char* message);
 };
 

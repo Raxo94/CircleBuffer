@@ -13,15 +13,17 @@ CircBufferFixed::CircBufferFixed(LPCWSTR buffName, const bool & isProducer, cons
 	this->chunkSize = chunkSize;
 	this->ClientPosition = 0;
 	this->MessageCount = 0;
-	this->consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
 	
-
+	
 	createMaping();
 	UpdateControlBuffer();
 }
 
 CircBufferFixed::~CircBufferFixed()
 {
+	if (isProducer=false)
+		ControlPointer[CLIENTCOUNT] -= 1;
+
 	UnmapViewOfFile(MapPointer);
 	CloseHandle(MapingFile);
 
@@ -96,7 +98,8 @@ size_t CircBufferFixed::CalculateFreeMemory()
 	{
 		return freeMemory = (buffSize - ControlPointer[HEAD]) + ControlPointer[TAIL];
 	}
-	else
+
+	else if (ControlPointer[HEAD] < ControlPointer[TAIL])
 	{
 		return freeMemory = ControlPointer[TAIL] - ControlPointer[HEAD];
 	}
@@ -105,50 +108,51 @@ size_t CircBufferFixed::CalculateFreeMemory()
 
 
 
-bool CircBufferFixed::push(const void * message, size_t length)
+bool CircBufferFixed::push(const char * message, size_t length)
 {
 
 	size_t padding = chunkSize - ((ClientPosition + sizeof(Header) + length) % chunkSize); //padding my way through the darkness.
 	
-	if (CalculateFreeMemory() > (sizeof(Header) + length + padding)) // WRITE if enough free memory for message. Make sure not to reach the tail.
+
+	if (CalculateFreeMemory() > (sizeof(Header) + length + padding)) // Header mustn't reach the tail but the tail should be able to reach the head
 	{
+		if (ClientPosition == buffSize) 
+			ClientPosition = 0;
+
+		MessageCount += 1;
 		Header messageHeader;
 		messageHeader.id = MessageCount;
 		messageHeader.length = length;
 		messageHeader.ClientRemaining = ControlPointer[CLIENTCOUNT];
 		messageHeader.padding = padding;
 
-		memcpy(&MapPointer[ClientPosition], &messageHeader, sizeof(Header)); //WRITE HEADER Because of padding there should be >= 256 bites left.
+		memcpy(&MapPointer[ClientPosition], &messageHeader, sizeof(Header)); //WRITE HEADER 
+		ClientPosition += sizeof(Header);
 
-
-		if (buffSize - ClientPosition >= (length + padding)) //WRITE MESSAGE
+		if (buffSize - ClientPosition >= length + padding)
 		{
-			ClientPosition += sizeof(Header);
-			memcpy(&MapPointer[ClientPosition], message, length); 
+			memcpy(&MapPointer[ClientPosition], message, length);
+			ClientPosition += length;
+			ClientPosition += messageHeader.padding;
 		}
-
-
-		else if (ControlPointer[TAIL] > length + padding) //RECYCLE BUFFER WRITE MESSAGE
+		
+		else
 		{
-			ClientPosition += sizeof(Header);
+			size_t Rest = buffSize - ClientPosition;
+			memcpy(&MapPointer[ClientPosition], message, Rest);
+
 			ClientPosition = 0;
-			memcpy(&MapPointer[ClientPosition], message, length); 
+			size_t Remaining = length - Rest;
+			memcpy(&MapPointer[ClientPosition], message + Rest, Remaining);
+			ClientPosition = Remaining;
 		}
-		else //NOT ENOUGH MEMORY
-			return false;
-
-
-		ClientPosition += length; 
-		ClientPosition += messageHeader.padding;
-
 		
 		ControlPointer[HEAD] = ClientPosition;
-		ClientPosition = ClientPosition % buffSize;  //filled the buffer. Pointer will be reset;
+		
 		
 		cout << MessageCount << " ";
 		//cout << (char*)message << endl;
-
-		MessageCount += 1;
+		
 		return true;
 	}
 
@@ -158,40 +162,47 @@ bool CircBufferFixed::push(const void * message, size_t length)
 }
 
 
-bool CircBufferFixed::pop(char * message, size_t & length)
+bool CircBufferFixed::pop(char * message)
 {
 	if (this->ClientPosition == ControlPointer[HEAD]) //CONSUMER HAS READ ALL MESSAGES
 		return false;
 
-	ClientPosition = ClientPosition % buffSize; //filled the buffer. Pointer will be reset;
-	 
 	mutex.lock();
+	if (ClientPosition == buffSize) ClientPosition = 0;
 	Header* messageHeader= (Header*)&MapPointer[this->ClientPosition]; //read header
-	messageHeader->ClientRemaining -= 1;
-
 	ClientPosition += sizeof(Header); //move pointer forward;
 
-	if (buffSize - ClientPosition >= (messageHeader->length + messageHeader->padding)) 
+
+	if (buffSize - ClientPosition >= (messageHeader->length + messageHeader->padding))
+	{
 		memcpy(message, &MapPointer[this->ClientPosition], messageHeader->length);
+		ClientPosition += messageHeader->length;
+		ClientPosition += messageHeader->padding;
+	}
 
 	else 
 	{
+		size_t Rest = buffSize - ClientPosition;
+		memcpy(message,&MapPointer[ClientPosition], Rest);
+
 		ClientPosition = 0;
-		memcpy(message, &MapPointer[this->ClientPosition], messageHeader->length);
+		size_t Remaining = messageHeader->length - Rest;
+		memcpy(message + Rest,&MapPointer[ClientPosition], Remaining);
+		ClientPosition = Remaining;
 	}
 
-	ClientPosition += messageHeader->length;
-	ClientPosition += messageHeader->padding;
+
+	messageHeader->ClientRemaining -= 1;
 
 	if (messageHeader->ClientRemaining == 0)
 		ControlPointer[TAIL] = ClientPosition;
 
 	mutex.unlock(); //Allow other clients to read
 
-	cout <<  messageHeader->id <<" ";
+	
+	cout << messageHeader->id << " ";
 	//cout << (char*)message << endl;
 	
-
 	
 	return true;
 	
