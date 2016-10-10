@@ -151,7 +151,7 @@ bool CircBufferFixed::push(const char * message, size_t length)
 		
 		
 		cout << MessageCount << " ";
-		//cout << (char*)message << endl;
+		cout << (char*)message << endl;
 		
 		return true;
 	}
@@ -201,7 +201,7 @@ bool CircBufferFixed::pop(char * message)
 
 	
 	cout << messageHeader->id << " ";
-	//cout << (char*)message << endl;
+	cout << (char*)message << endl;
 	
 	
 	return true;
