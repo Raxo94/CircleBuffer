@@ -1,4 +1,3 @@
-#define _CRTDBG_MAP_ALLOC
 #include <iostream>
 #include "CircBuffer.h"
 #include <time.h>
@@ -12,7 +11,6 @@ using namespace std;
 //in realese version-10 megabites of memory doesn't work. but one megabite does.
 int main(size_t argc, char* argv[])
 {
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF); // detect memory leaks
 	
 	if (argc < 6) { showUsage(); } // if too many arguments exit
 	srand((unsigned)time(NULL));   // make sure random works
@@ -49,8 +47,6 @@ int main(size_t argc, char* argv[])
 				while (CircleBuffer.push(message, size) == false)
 				{	
 					Sleep(1);         
-					size = randomSize(1, maxMessageSize);
-					gen_randomString(message, size);
 				}
 				
 			}
@@ -62,7 +58,7 @@ int main(size_t argc, char* argv[])
 					Sleep(1);
 			}	
 		}
-	}
+	}//end of producer
 
 	else //IF CLIENT
 	{
