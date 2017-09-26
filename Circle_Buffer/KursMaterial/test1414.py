@@ -74,7 +74,7 @@ class ThreadTest(threading.Thread):
 
 
 # change executable name if necessary
-program = 'shared.exe'
+program = 'Circle_Buffer.exe'
 
 if __name__=='__main__':
     programName = program

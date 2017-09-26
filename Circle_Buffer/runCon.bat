@@ -1,1 +1,0 @@
-start x64\Debug\Circle_Buffer.exe consumer 0 10 10000 random

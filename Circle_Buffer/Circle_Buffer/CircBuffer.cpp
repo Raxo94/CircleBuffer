@@ -11,7 +11,7 @@ CircBufferFixed::CircBufferFixed(LPCWSTR buffName, const bool & isProducer, cons
 	this->buffSize = buffSize;
 	this->isProducer = isProducer;
 	this->chunkSize = chunkSize;
-	this->ClientPosition = 0;
+	this->positionInBuffer = 0;
 	this->MessageCount = 0;
 	
 	
@@ -112,93 +112,97 @@ size_t CircBufferFixed::CalculateFreeMemory()
 bool CircBufferFixed::push(const char * message, size_t length)
 {
 
-	size_t padding = chunkSize - ((ClientPosition + sizeof(Header) + length) % chunkSize); //padding my way through the darkness.
+	size_t padding = chunkSize - ((positionInBuffer + sizeof(Header) + length) % chunkSize); // Padding makes sure that the message is dividable by the chunkSize.
 	
 
-	if (CalculateFreeMemory() > (sizeof(Header) + length + padding)) // Header mustn't reach the tail but the tail should be able to reach the head
+	if (CalculateFreeMemory() > (sizeof(Header) + length + padding)) // Send message if there is enough space in the buffer to do so.
 	{
-		if (ClientPosition == buffSize) 
-			ClientPosition = 0;
+		if (positionInBuffer == buffSize) // If producer has reached the end of the shared memory, go back to the begining. 
+			positionInBuffer = 0;
 
 		MessageCount += 1;
-		Header messageHeader;
+
+		Header messageHeader; // Prepare the message header that will be used by clients to read the message.
 		messageHeader.id = MessageCount;
 		messageHeader.length = length;
 		messageHeader.ClientRemaining = ControlPointer[CLIENTCOUNT];
 		messageHeader.padding = padding;
 
-		memcpy(&MapPointer[ClientPosition], &messageHeader, sizeof(Header)); //WRITE HEADER 
-		ClientPosition += sizeof(Header);
+		memcpy(&MapPointer[positionInBuffer], &messageHeader, sizeof(Header)); //Write the message header into the circular buffer. 
+		positionInBuffer += sizeof(Header); // Update the producers position in the circular buffer.
 
-		if (buffSize - ClientPosition >= length + padding)
+		if (buffSize - positionInBuffer >= length + padding) //The message can be sent without spliting it. 
 		{
-			memcpy(&MapPointer[ClientPosition], message, length);
-			ClientPosition += length;
-			ClientPosition += messageHeader.padding;
+			memcpy(&MapPointer[positionInBuffer], message, length);
+			positionInBuffer += length;
+			positionInBuffer += messageHeader.padding;
 		}
 		
-		else
+		else //Split the message
 		{
-			size_t Rest = buffSize - ClientPosition;
-			memcpy(&MapPointer[ClientPosition], message, Rest);
+			size_t Rest = buffSize - positionInBuffer;
+			memcpy(&MapPointer[positionInBuffer], message, Rest); //Write the first part of the message.
 
-			ClientPosition = 0;
+			positionInBuffer = 0;
 			size_t Remaining = length - Rest;
-			memcpy(&MapPointer[ClientPosition], message + Rest, Remaining);
-			ClientPosition = Remaining;
+			memcpy(&MapPointer[positionInBuffer], message + Rest, Remaining); //Write the rest of the message.
+			positionInBuffer = Remaining; //update the producers position in the circular buffer.
 		}
 		
-		ControlPointer[HEAD] = ClientPosition;
+		ControlPointer[HEAD] = positionInBuffer; //communicate to clients were the producer is located in the circular buffer.
 		
 		
-		cout << MessageCount << " ";
+		cout << MessageCount << " "; 
 		cout << (char*)message << endl;
 		
 		return true;
 	}
 
 
-	else //NO MEMORY
+	else //NOT ENOUGH MEMORY
 		return false;
 }
 
 
 bool CircBufferFixed::pop(char * message)
 {
-	if (this->ClientPosition == ControlPointer[HEAD]) //CONSUMER HAS READ ALL MESSAGES
+	if (this->positionInBuffer == ControlPointer[HEAD]) // If the consumer has read all available messages, return false.
 		return false;
 
-	mutex.lock();
-	if (ClientPosition == buffSize) ClientPosition = 0;
-	Header* messageHeader= (Header*)&MapPointer[this->ClientPosition]; //read header
-	ClientPosition += sizeof(Header); //move pointer forward;
+	mutex.lock(); // Make sure no other clients read this memory at the same time.
+
+	if (positionInBuffer == buffSize) 
+		positionInBuffer = 0; //if client has reached the end of the shared memory, go back to the begining.  
+
+	Header* messageHeader= (Header*)&MapPointer[this->positionInBuffer]; // Read the message header.
+	positionInBuffer += sizeof(Header); //update this clients position in the circular buffer.
 
 
-	if (buffSize - ClientPosition >= (messageHeader->length + messageHeader->padding))
+	if (buffSize - positionInBuffer >= (messageHeader->length + messageHeader->padding)) // If the message is not split.
 	{
-		memcpy(message, &MapPointer[this->ClientPosition], messageHeader->length);
-		ClientPosition += messageHeader->length;
-		ClientPosition += messageHeader->padding;
+		memcpy(message, &MapPointer[this->positionInBuffer], messageHeader->length);
+		positionInBuffer += messageHeader->length;
+		positionInBuffer += messageHeader->padding;
 	}
 
-	else 
+	else // If the message is split.
 	{
-		size_t Rest = buffSize - ClientPosition;
-		memcpy(message,&MapPointer[ClientPosition], Rest);
+		size_t part1 = buffSize - positionInBuffer; // Calculate how much of the message is still in the end of the buffer memory. 
+		memcpy(message,&MapPointer[positionInBuffer], part1); // Read the first half of the message.
 
-		ClientPosition = 0;
-		size_t Remaining = messageHeader->length - Rest;
-		memcpy(message + Rest,&MapPointer[ClientPosition], Remaining);
-		ClientPosition = Remaining;
+		positionInBuffer = 0;
+		size_t part2 = messageHeader->length - part1; // Calculate how much of the message is in the begining of the bufffer memory.
+		memcpy(message + part1,&MapPointer[positionInBuffer], part2); // Read the rest of the message.
+		positionInBuffer = part2; //change this
 	}
 
 
-	messageHeader->ClientRemaining -= 1;
+	messageHeader->ClientRemaining -= 1; //Notify the message that it has been read by this client. 
 
-	if (messageHeader->ClientRemaining == 0)
-		ControlPointer[TAIL] = ClientPosition;
+	if (messageHeader->ClientRemaining == 0) // If all clients have read this message, allow the producer to overwrite it.   
+		ControlPointer[TAIL] = positionInBuffer;
 
-	mutex.unlock(); //Allow other clients to read
+	mutex.unlock(); //Allow other clients to read this part of the buffer memory.
 
 	
 	cout << messageHeader->id << " ";
