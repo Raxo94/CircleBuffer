@@ -8,8 +8,8 @@
 
 using namespace std;
 
-//this Class handles the
-class CircBufferFixed
+
+class CircBuffer
 {
 	enum { HEAD, TAIL, CLIENTCOUNT };
 	struct Header // Header for messages in circularBuffer. Allows clients to the the Circular Buffer to know the size of the next message. 
@@ -17,7 +17,7 @@ class CircBufferFixed
 		size_t id;
 		size_t length;
 		size_t padding;
-		size_t ClientRemaining;
+		size_t clientsRemaining;
 	};
 
 	struct Control // Struct used in the control buffer to allow communication between multiple instances of the circular buffer. Such as clients to the producer and vice versa.
@@ -46,13 +46,13 @@ private:
 	
 public:
 	
-	CircBufferFixed(					   // Constructor
+	CircBuffer(					   // Constructor
 		LPCWSTR buffName,			       // Name of the buffer
 		const bool& isProducer,			   // is this buffer going to be used as producer
 		const size_t& buffSize,			   // size of the whole filemap/Circular buffer
 		const size_t& chunkSize);		   // round up messages to multiple of the varaibles value.
 
-	~CircBufferFixed(); // Destructor
+	~CircBuffer(); // Destructor
 
 	size_t CalculateFreeMemory(); //returns how much memory is left in the Circle buffer
 
